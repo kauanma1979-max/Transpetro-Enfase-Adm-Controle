@@ -1,0 +1,6 @@
+{
+  "name": "Transpetro 2026.3 - Pareto Ênfase 1: Administração e Controle",
+  "description": "Guia e cronograma interativo com base no edital Transpetro 2026.3 (Ênfase 1: Administração e Controle - Nível Médio), com metodologia Pareto Recursivo focado 100% nas matérias específicas, raio-x Cesgranrio, regras de corte e caderno de erros.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

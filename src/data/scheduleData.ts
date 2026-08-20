@@ -1585,3 +1585,46 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
 
 // Concatena as semanas restantes gerando todas as 15 semanas
 CRONOGRAMA_15_SEMANAS.push(...gerarSemanasRestantes());
+
+export const DATA_INICIO_ESTUDOS = '20/08/2026';
+export const DATA_PROVA_OFICIAL = '29/11/2026';
+
+const NOMES_DIAS_SEMANA = [
+  'Quinta-feira',
+  'Sexta-feira',
+  'Sábado',
+  'Domingo',
+  'Segunda-feira',
+  'Terça-feira',
+  'Quarta-feira'
+];
+
+// Normaliza todas as semanas e dias para iniciar rigorosamente em 20 de Agosto de 2026 (Quinta-feira)
+(function normalizarDatasPara20Agosto() {
+  const dataBase = new Date(2026, 7, 20); // 20 de Agosto de 2026
+
+  CRONOGRAMA_15_SEMANAS.forEach((semana, sIdx) => {
+    const inicioSemana = new Date(dataBase);
+    inicioSemana.setDate(dataBase.getDate() + sIdx * 7);
+
+    const fimSemana = new Date(dataBase);
+    fimSemana.setDate(dataBase.getDate() + sIdx * 7 + (semana.dias.length - 1));
+
+    const formataDiaMes = (d: Date) => {
+      const dia = String(d.getDate()).padStart(2, '0');
+      const mes = String(d.getMonth() + 1).padStart(2, '0');
+      return `${dia}/${mes}`;
+    };
+
+    semana.datas = `${formataDiaMes(inicioSemana)} a ${formataDiaMes(fimSemana)}/2026`;
+
+    semana.dias.forEach((dia, dIdx) => {
+      const dataDia = new Date(dataBase);
+      dataDia.setDate(dataBase.getDate() + (sIdx * 7) + dIdx);
+
+      dia.dataSugerida = formataDiaMes(dataDia);
+      dia.diaSemana = NOMES_DIAS_SEMANA[dIdx % 7];
+    });
+  });
+})();
+

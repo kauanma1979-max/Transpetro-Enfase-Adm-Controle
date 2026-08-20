@@ -10,8 +10,9 @@ import { ErrorNotebook } from './components/ErrorNotebook';
 import { DailySessionModal } from './components/DailySessionModal';
 import { TabMaterialEstudo } from './components/TabMaterialEstudo';
 import { FormulaCalculatorModal } from './components/FormulaCalculatorModal';
+import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { NavigationTabs } from './components/NavigationTabs';
-import { ScheduleDay, CRONOGRAMA_15_SEMANAS } from './data/scheduleData';
+import { ScheduleDay, CRONOGRAMA_15_SEMANAS, DATA_INICIO_ESTUDOS } from './data/scheduleData';
 import { EDITAL_INFO } from './data/editalData';
 
 export default function App() {
@@ -31,6 +32,7 @@ export default function App() {
   const [activeSessionDay, setActiveSessionDay] = useState<ScheduleDay | null>(null);
   const [isCalculatorOpen, setIsCalculatorOpen] = useState<boolean>(false);
   const [calculatorFormula, setCalculatorFormula] = useState<string | undefined>(undefined);
+  const [isBackupModalOpen, setIsBackupModalOpen] = useState<boolean>(false);
 
   const handleOpenCalculator = (formulaNome?: string) => {
     setCalculatorFormula(formulaNome);
@@ -59,6 +61,15 @@ export default function App() {
     }
   };
 
+  const handleDataRestored = () => {
+    try {
+      const rawDays = localStorage.getItem('transpetro_completed_days_v2');
+      if (rawDays) {
+        setCompletedDays(JSON.parse(rawDays));
+      }
+    } catch (e) { /* ignore */ }
+  };
+
   // 15 semanas × 7 dias = 105 dias. 105 dias × 3 horas = 315 horas totais.
   const totalHours = 315;
   const completedHours = completedDays.length * 3;
@@ -69,6 +80,7 @@ export default function App() {
     const report = `# RELATÓRIO DE ESTUDOS ESTRATÉGICO — TRANSPETRO 2026.3
 Ênfase 1: Administração e Controle (Nível Médio)
 Banca: Fundação Cesgranrio | Data da Prova: 29/11/2026 (13h00)
+Início do Plano: 20 de Agosto de 2026
 
 ## 📊 Status do Candidato (Rotina 3h/dia · 7 dias/semana):
 - Horas Cumpridas: ${completedHours}h de ${totalHours}h totais (${progressPct}%)
@@ -106,6 +118,7 @@ Gerado em: ${new Date().toLocaleString('pt-BR')}
         totalHours={totalHours}
         onResetProgress={handleResetProgress}
         onExportReport={handleExportReport}
+        onOpenBackupModal={() => setIsBackupModalOpen(true)}
       />
 
       {/* Main Views Container */}
@@ -129,6 +142,13 @@ Gerado em: ${new Date().toLocaleString('pt-BR')}
         {activeTab === 'banca' && <BancaCesgranrio />}
         {activeTab === 'caderno' && <ErrorNotebook />}
       </main>
+
+      {/* Backup and Restore Modal */}
+      <BackupRestoreModal
+        isOpen={isBackupModalOpen}
+        onClose={() => setIsBackupModalOpen(false)}
+        onDataRestored={handleDataRestored}
+      />
 
       {/* Formula Calculator Modal */}
       {isCalculatorOpen && (
@@ -159,7 +179,7 @@ Gerado em: ${new Date().toLocaleString('pt-BR')}
             <span>Edital nº 03/2026 (Ênfase 1: Administração e Controle)</span>
           </div>
           <div className="text-slate-500 font-medium">
-            3h/dia · 7 dias/sem (21h/sem · 315h Totais) · Metodologia Pareto Recursivo
+            3h/dia · 7 dias/sem (21h/sem · 315h Totais) · Início em 20 de Agosto de 2026
           </div>
         </div>
       </footer>

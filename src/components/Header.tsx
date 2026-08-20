@@ -3,7 +3,10 @@ import {
   Target, 
   Clock, 
   Download, 
-  RotateCcw
+  RotateCcw,
+  Database,
+  Calendar,
+  Sparkles
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -11,13 +14,15 @@ interface HeaderProps {
   totalHours: number;
   onResetProgress: () => void;
   onExportReport: () => void;
+  onOpenBackupModal: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   completedHours,
   totalHours,
   onResetProgress,
-  onExportReport
+  onExportReport,
+  onOpenBackupModal
 }) => {
   const [timeLeft, setTimeLeft] = useState<{
     days: number;
@@ -65,6 +70,11 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-slate-300 font-medium hidden sm:inline text-xs">
               Edital nº 03/2026 · Nível Médio · <strong className="text-white font-semibold">Ênfase 1: Administração e Controle</strong>
             </span>
+            <span className="text-slate-500 hidden md:inline">·</span>
+            <span className="inline-flex items-center gap-1 text-[11px] text-amber-300 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+              <Calendar className="w-3 h-3 text-amber-400" />
+              Início: 20 de Agosto de 2026 (~100 Dias)
+            </span>
           </div>
 
           <div className="flex items-center gap-3 text-slate-300">
@@ -76,7 +86,7 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
             <span className="text-slate-700 hidden md:inline">|</span>
             <span className="hidden md:inline text-amber-300/90 text-xs font-medium">
-              Banca: Fundação Cesgranrio (29/11/2026)
+              Cesgranrio (29/11/2026)
             </span>
           </div>
         </div>
@@ -99,7 +109,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </span>
                 </h1>
                 <p className="text-xs text-slate-400 leading-none mt-1">
-                  Transpetro Nível Médio · 315h Totais · 2 Matérias Intercaladas Diárias
+                  Transpetro Nível Médio · 315h Totais · Início em 20/08/2026
                 </p>
               </div>
             </div>
@@ -123,20 +133,32 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             <div className="flex items-center gap-1.5 border-l border-slate-700/70 pl-3">
+              {/* Backup & Restore Button */}
+              <button
+                id="btn-open-backup-modal"
+                onClick={onOpenBackupModal}
+                title="Fazer Backup ou Restaurar Dados do Aplicativo"
+                className="px-3 py-1.5 rounded-lg bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white transition-all text-xs flex items-center gap-1.5 font-bold border border-emerald-500/40 shadow-xs cursor-pointer"
+              >
+                <Database className="w-3.5 h-3.5 text-emerald-400 group-hover:text-white" />
+                <span>Backup / Restaurar</span>
+              </button>
+
               <button
                 id="btn-export-report"
                 onClick={onExportReport}
-                title="Exportar Resumo de Estudos"
-                className="px-2.5 py-1.5 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-xs flex items-center gap-1.5 font-medium border border-slate-600/40"
+                title="Exportar Resumo de Estudos em Markdown"
+                className="px-2.5 py-1.5 rounded-lg bg-slate-700/60 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-xs flex items-center gap-1.5 font-medium border border-slate-600/40 cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Exportar</span>
+                <span className="hidden sm:inline">Relatório</span>
               </button>
+
               <button
                 id="btn-reset-progress"
                 onClick={onResetProgress}
-                title="Reiniciar Progresso"
-                className="p-1.5 rounded-lg bg-slate-700/40 hover:bg-slate-700/80 text-slate-400 hover:text-amber-300 transition-all text-xs border border-slate-700/40"
+                title="Reiniciar Progresso de Dias Estudados"
+                className="p-1.5 rounded-lg bg-slate-700/40 hover:bg-slate-700/80 text-slate-400 hover:text-amber-300 transition-all text-xs border border-slate-700/40 cursor-pointer"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
               </button>

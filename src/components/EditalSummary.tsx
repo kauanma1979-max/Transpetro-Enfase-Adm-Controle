@@ -5,6 +5,7 @@ import {
   CRONOGRAMA_OFICIAL, 
   CIDADES_APLICACAO_PROVA 
 } from '../data/editalData';
+import { MaterialLinksSection } from './MaterialLinksSection';
 import { 
   Building2, 
   Calendar, 
@@ -19,7 +20,10 @@ import {
   Users,
   Search,
   ChevronRight,
-  ExternalLink
+  ExternalLink,
+  BookOpen,
+  FolderOpen,
+  Link as LinkIcon
 } from 'lucide-react';
 
 export const EditalSummary: React.FC = () => {
@@ -34,6 +38,14 @@ export const EditalSummary: React.FC = () => {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto py-6 px-4">
+      {/* Central de Acesso Rápido a Materiais e Links no Topo da Página */}
+      <div className="bg-white rounded-2xl p-5 sm:p-7 border border-slate-200/80 shadow-xs">
+        <MaterialLinksSection 
+          moduloId="todos" 
+          showAllModulesFilter={true} 
+        />
+      </div>
+
       {/* Hero Executive Card */}
       <div className="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200/80 shadow-xs relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-emerald-50/80 via-teal-50/40 to-transparent rounded-full blur-3xl -z-0 opacity-70 pointer-events-none" />

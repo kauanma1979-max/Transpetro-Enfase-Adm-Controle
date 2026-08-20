@@ -117,13 +117,16 @@ export const ErrorNotebook: React.FC = () => {
   const totalSimPct = Math.round((totalSimAcertos / 40) * 100);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(errors));
-    notifyDataUpdated(STORAGE_KEYS.ERROR_NOTEBOOK);
+    try {
+      localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(errors));
+    } catch (e) {
+      console.error('Error saving error notebook', e);
+    }
   }, [errors]);
 
-  // Listen to external data restore
+  // Listen to external data restore (from JSON backup import only)
   useEffect(() => {
-    const handleStorageChange = () => {
+    const handleStorageRestore = () => {
       try {
         const saved = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
         if (saved) {
@@ -133,8 +136,8 @@ export const ErrorNotebook: React.FC = () => {
         // ignore
       }
     };
-    window.addEventListener('transpetro_storage_changed', handleStorageChange);
-    return () => window.removeEventListener('transpetro_storage_changed', handleStorageChange);
+    window.addEventListener('transpetro_data_restored', handleStorageRestore);
+    return () => window.removeEventListener('transpetro_data_restored', handleStorageRestore);
   }, []);
 
   const handleAddError = (e: React.FormEvent) => {

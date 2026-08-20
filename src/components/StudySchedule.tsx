@@ -48,8 +48,8 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
 }) => {
   const [selectedWeekNum, setSelectedWeekNum] = useState<number>(1);
   const [activeBlocoFilter, setActiveBlocoFilter] = useState<number | 'todos'>('todos');
-  const [expandedDayNotes, setExpandedDayNotes] = useState<Record<string, boolean>>({});
-  const [dayNotes, setDayNotes] = useState<Record<string, string>>(() => {
+  const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
+  const [subjectNotes, setSubjectNotes] = useState<Record<string, string>>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES);
       return saved ? JSON.parse(saved) : {};
@@ -57,48 +57,60 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
       return {};
     }
   });
-  const [savedDayToasts, setSavedDayToasts] = useState<Record<string, boolean>>({});
+  const [savedNoteToasts, setSavedNoteToasts] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES, JSON.stringify(dayNotes));
-      notifyDataUpdated(STORAGE_KEYS.SCHEDULE_DAY_NOTES);
+      localStorage.setItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES, JSON.stringify(subjectNotes));
     } catch (e) {
-      console.error('Error saving schedule day notes', e);
+      console.error('Error saving schedule subject notes', e);
     }
-  }, [dayNotes]);
+  }, [subjectNotes]);
 
-  // Listen to external data restore
+  // Listen to external data restore (from JSON backup import only)
   useEffect(() => {
-    const handleStorageChange = () => {
+    const handleStorageRestore = () => {
       try {
         const saved = localStorage.getItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES);
         if (saved) {
-          setDayNotes(JSON.parse(saved));
+          setSubjectNotes(JSON.parse(saved));
         }
       } catch (e) {
         // ignore
       }
     };
-    window.addEventListener('transpetro_storage_changed', handleStorageChange);
-    return () => window.removeEventListener('transpetro_storage_changed', handleStorageChange);
+    window.addEventListener('transpetro_data_restored', handleStorageRestore);
+    return () => window.removeEventListener('transpetro_data_restored', handleStorageRestore);
   }, []);
 
-  const handleUpdateDayNotes = (dayId: string, text: string) => {
-    setDayNotes(prev => ({ ...prev, [dayId]: text }));
+  const handleUpdateNote = (key: string, text: string) => {
+    setSubjectNotes(prev => {
+      const updated = { ...prev, [key]: text };
+      try {
+        localStorage.setItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES, JSON.stringify(updated));
+      } catch (e) {
+        // ignore
+      }
+      return updated;
+    });
   };
 
-  const handleSaveDayNotesExplicit = (dayId: string) => {
-    const currentText = dayNotes[dayId] || '';
-    setDayNotes(prev => ({ ...prev, [dayId]: currentText }));
-    setSavedDayToasts(prev => ({ ...prev, [dayId]: true }));
+  const handleClearNote = (key: string) => {
+    handleUpdateNote(key, '');
+    setSavedNoteToasts(prev => ({ ...prev, [key]: false }));
+  };
+
+  const handleSaveNoteExplicit = (key: string) => {
+    const currentText = subjectNotes[key] || '';
+    handleUpdateNote(key, currentText);
+    setSavedNoteToasts(prev => ({ ...prev, [key]: true }));
     setTimeout(() => {
-      setSavedDayToasts(prev => ({ ...prev, [dayId]: false }));
+      setSavedNoteToasts(prev => ({ ...prev, [key]: false }));
     }, 2500);
   };
 
-  const handleToggleDayNotesExpand = (dayId: string) => {
-    setExpandedDayNotes(prev => ({ ...prev, [dayId]: !prev[dayId] }));
+  const handleToggleNoteExpand = (key: string) => {
+    setExpandedNotes(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
   const currentWeek = CRONOGRAMA_15_SEMANAS.find(w => w.numero === selectedWeekNum) || CRONOGRAMA_15_SEMANAS[0];
@@ -335,164 +347,241 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
                 </button>
               </div>
 
-              {/* 2 Subject Blocks Side-by-Side (Bloco A & Bloco B) */}
+              {/* 2 Subject Blocks Side-by-Side (Bloco A & Bloco B) with individual Details & Notes */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 {/* Bloco A: Matéria 1 */}
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/80 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase bg-emerald-100 text-emerald-800">
-                      Bloco 1 · 1h30 (90 min)
-                    </span>
-                    <span className="text-xs font-bold text-slate-600">
-                      {dia.blocoA?.disciplina || 'Matéria 1'}
-                    </span>
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/80 flex flex-col justify-between space-y-3">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase bg-emerald-100 text-emerald-800">
+                        Bloco 1 · 1h30 (90 min)
+                      </span>
+                      <span className="text-xs font-bold text-slate-600">
+                        {dia.blocoA?.disciplina || 'Matéria 1'}
+                      </span>
+                    </div>
+
+                    <h5 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug">
+                      {dia.blocoA?.subtopico}
+                    </h5>
+
+                    {/* Objectives list */}
+                    <ul className="space-y-1 text-xs text-slate-600 pt-1">
+                      {dia.blocoA?.objetivos?.map((obj, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-emerald-600 font-bold">•</span>
+                          <span>{obj}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* Cesgranrio tip */}
+                    {dia.blocoA?.dicaCesgranrio && (
+                      <div className="text-[11px] text-amber-900 bg-amber-50/90 border border-amber-200/80 p-2 rounded-lg leading-relaxed">
+                        <strong>Dica Banca:</strong> {dia.blocoA.dicaCesgranrio}
+                      </div>
+                    )}
+
+                    {/* Division pills */}
+                    <div className="grid grid-cols-3 gap-1 pt-1 text-center text-[10px] font-mono font-semibold">
+                      <div className="bg-white p-1 rounded-md border border-slate-200 text-blue-700">Teoria: {dia.blocoA?.teoriaMin || 25}m</div>
+                      <div className="bg-white p-1 rounded-md border border-slate-200 text-emerald-700">Questões: {dia.blocoA?.questoesMin || 50}m</div>
+                      <div className="bg-white p-1 rounded-md border border-slate-200 text-purple-700">Revisão: {dia.blocoA?.revisaoMin || 15}m</div>
+                    </div>
                   </div>
 
-                  <h5 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug">
-                    {dia.blocoA?.subtopico}
-                  </h5>
+                  {/* Subject 1: Collapsible Details & Personal Notes Section */}
+                  <div className="pt-3 border-t border-slate-200/80">
+                    <div className="flex items-center justify-between">
+                      <button
+                        type="button"
+                        id={`btn-toggle-note-${dia.id}-blocoA`}
+                        onClick={() => handleToggleNoteExpand(`${dia.id}_blocoA`)}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-emerald-700 transition-colors cursor-pointer py-1"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Detalhes & Anotações: {dia.blocoA?.disciplina || 'Matéria 1'}</span>
+                        {expandedNotes[`${dia.id}_blocoA`] ? (
+                          <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                        )}
+                      </button>
 
-                  {/* Objectives list */}
-                  <ul className="space-y-1 text-xs text-slate-600 pt-1">
-                    {dia.blocoA?.objetivos?.map((obj, i) => (
-                      <li key={i} className="flex items-start gap-1.5">
-                        <span className="text-emerald-600 font-bold">•</span>
-                        <span>{obj}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* Cesgranrio tip */}
-                  {dia.blocoA?.dicaCesgranrio && (
-                    <div className="text-[11px] text-amber-900 bg-amber-50/90 border border-amber-200/80 p-2 rounded-lg leading-relaxed">
-                      <strong>Dica Banca:</strong> {dia.blocoA.dicaCesgranrio}
+                      {subjectNotes[`${dia.id}_blocoA`] && !expandedNotes[`${dia.id}_blocoA`] && (
+                        <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          ✓ Salvo
+                        </span>
+                      )}
                     </div>
-                  )}
 
-                  {/* Division pills */}
-                  <div className="grid grid-cols-3 gap-1 pt-1 text-center text-[10px] font-mono font-semibold">
-                    <div className="bg-white p-1 rounded-md border border-slate-200 text-blue-700">Teoria: {dia.blocoA?.teoriaMin || 25}m</div>
-                    <div className="bg-white p-1 rounded-md border border-slate-200 text-emerald-700">Questões: {dia.blocoA?.questoesMin || 50}m</div>
-                    <div className="bg-white p-1 rounded-md border border-slate-200 text-purple-700">Revisão: {dia.blocoA?.revisaoMin || 15}m</div>
+                    {expandedNotes[`${dia.id}_blocoA`] && (
+                      <div className="mt-2.5 p-3 bg-white rounded-xl border border-slate-200 space-y-2.5 shadow-2xs">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-900">
+                          <span>Registro de Dúvidas, Macetes & Rendimento</span>
+                          {savedNoteToasts[`${dia.id}_blocoA`] ? (
+                            <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                              <Check className="w-3 h-3" /> Salvo no Backup!
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-normal">Persistido no JSON</span>
+                          )}
+                        </div>
+
+                        <textarea
+                          id={`textarea-note-${dia.id}-blocoA`}
+                          value={subjectNotes[`${dia.id}_blocoA`] || ''}
+                          onChange={(e) => handleUpdateNote(`${dia.id}_blocoA`, e.target.value)}
+                          placeholder={`Ex: Anotações de ${dia.blocoA?.disciplina || 'estudo'} (${dia.blocoA?.subtopico || ''}), pegadinhas Cesgranrio, fórmulas e dúvidas...`}
+                          rows={3}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                        />
+
+                        <div className="flex items-center justify-between pt-1">
+                          <button
+                            type="button"
+                            id={`btn-save-note-${dia.id}-blocoA`}
+                            onClick={() => handleSaveNoteExplicit(`${dia.id}_blocoA`)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                          >
+                            <Save className="w-3.5 h-3.5" />
+                            <span>Salvar Anotação da Matéria</span>
+                          </button>
+
+                          {subjectNotes[`${dia.id}_blocoA`] && (
+                            <button
+                              type="button"
+                              id={`btn-clear-note-${dia.id}-blocoA`}
+                              onClick={() => handleClearNote(`${dia.id}_blocoA`)}
+                              className="text-slate-400 hover:text-red-500 text-[11px] flex items-center gap-1 transition-colors p-1 cursor-pointer"
+                              title="Limpar anotações desta matéria"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Limpar</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 {/* Bloco B: Matéria 2 */}
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/80 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase bg-blue-100 text-blue-800">
-                      Bloco 2 · 1h30 (90 min)
-                    </span>
-                    <span className="text-xs font-bold text-slate-600">
-                      {dia.blocoB?.disciplina || 'Matéria 2'}
-                    </span>
-                  </div>
-
-                  <h5 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug">
-                    {dia.blocoB?.subtopico}
-                  </h5>
-
-                  {/* Objectives list */}
-                  <ul className="space-y-1 text-xs text-slate-600 pt-1">
-                    {dia.blocoB?.objetivos?.map((obj, i) => (
-                      <li key={i} className="flex items-start gap-1.5">
-                        <span className="text-blue-600 font-bold">•</span>
-                        <span>{obj}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {/* Cesgranrio tip */}
-                  {dia.blocoB?.dicaCesgranrio && (
-                    <div className="text-[11px] text-amber-900 bg-amber-50/90 border border-amber-200/80 p-2 rounded-lg leading-relaxed">
-                      <strong>Dica Banca:</strong> {dia.blocoB.dicaCesgranrio}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/80 flex flex-col justify-between space-y-3">
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase bg-blue-100 text-blue-800">
+                        Bloco 2 · 1h30 (90 min)
+                      </span>
+                      <span className="text-xs font-bold text-slate-600">
+                        {dia.blocoB?.disciplina || 'Matéria 2'}
+                      </span>
                     </div>
-                  )}
 
-                  {/* Division pills */}
-                  <div className="grid grid-cols-3 gap-1 pt-1 text-center text-[10px] font-mono font-semibold">
-                    <div className="bg-white p-1 rounded-md border border-slate-200 text-blue-700">Teoria: {dia.blocoB?.teoriaMin || 25}m</div>
-                    <div className="bg-white p-1 rounded-md border border-slate-200 text-emerald-700">Questões: {dia.blocoB?.questoesMin || 50}m</div>
-                    <div className="bg-white p-1 rounded-md border border-slate-200 text-purple-700">Revisão: {dia.blocoB?.revisaoMin || 15}m</div>
-                  </div>
-                </div>
-              </div>
+                    <h5 className="text-xs sm:text-sm font-bold text-slate-900 leading-snug">
+                      {dia.blocoB?.subtopico}
+                    </h5>
 
-              {/* Collapsible Details & Personal Notes Section for this Study Day */}
-              <div className="mt-4 pt-3 border-t border-slate-100">
-                <div className="flex items-center justify-between">
-                  <button
-                    type="button"
-                    id={`btn-toggle-day-notes-${dia.id}`}
-                    onClick={() => handleToggleDayNotesExpand(dia.id)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-emerald-700 transition-colors cursor-pointer py-1"
-                  >
-                    <FileText className="w-3.5 h-3.5 text-emerald-600" />
-                    <span>Detalhes & Anotações do Dia</span>
-                    {expandedDayNotes[dia.id] ? (
-                      <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-                    ) : (
-                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                    {/* Objectives list */}
+                    <ul className="space-y-1 text-xs text-slate-600 pt-1">
+                      {dia.blocoB?.objetivos?.map((obj, i) => (
+                        <li key={i} className="flex items-start gap-1.5">
+                          <span className="text-blue-600 font-bold">•</span>
+                          <span>{obj}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {/* Cesgranrio tip */}
+                    {dia.blocoB?.dicaCesgranrio && (
+                      <div className="text-[11px] text-amber-900 bg-amber-50/90 border border-amber-200/80 p-2 rounded-lg leading-relaxed">
+                        <strong>Dica Banca:</strong> {dia.blocoB.dicaCesgranrio}
+                      </div>
                     )}
-                  </button>
 
-                  {dayNotes[dia.id] && !expandedDayNotes[dia.id] && (
-                    <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                      ✓ Contém anotações
-                    </span>
-                  )}
-                </div>
-
-                {expandedDayNotes[dia.id] && (
-                  <div className="mt-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5">
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-900">
-                      <span>Registro de Dúvidas, Macetes & Rendimento</span>
-                      {savedDayToasts[dia.id] ? (
-                        <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
-                          <Check className="w-3 h-3" /> Salvo no Backup!
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-slate-400 font-normal">Persistido no JSON</span>
-                      )}
+                    {/* Division pills */}
+                    <div className="grid grid-cols-3 gap-1 pt-1 text-center text-[10px] font-mono font-semibold">
+                      <div className="bg-white p-1 rounded-md border border-slate-200 text-blue-700">Teoria: {dia.blocoB?.teoriaMin || 25}m</div>
+                      <div className="bg-white p-1 rounded-md border border-slate-200 text-emerald-700">Questões: {dia.blocoB?.questoesMin || 50}m</div>
+                      <div className="bg-white p-1 rounded-md border border-slate-200 text-purple-700">Revisão: {dia.blocoB?.revisaoMin || 15}m</div>
                     </div>
+                  </div>
 
-                    <textarea
-                      id={`textarea-day-notes-${dia.id}`}
-                      value={dayNotes[dia.id] || ''}
-                      onChange={(e) => handleUpdateDayNotes(dia.id, e.target.value)}
-                      placeholder="Ex: Hoje foquei na diferença entre Pregão e Concorrência na 14.133. Acertei 18 de 20 questões Cesgranrio. Revisar prazos de recurso amanhã cedo..."
-                      rows={3}
-                      className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
-                    />
-
-                    <div className="flex items-center justify-between pt-1">
+                  {/* Subject 2: Collapsible Details & Personal Notes Section */}
+                  <div className="pt-3 border-t border-slate-200/80">
+                    <div className="flex items-center justify-between">
                       <button
                         type="button"
-                        id={`btn-save-day-notes-${dia.id}`}
-                        onClick={() => handleSaveDayNotesExplicit(dia.id)}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                        id={`btn-toggle-note-${dia.id}-blocoB`}
+                        onClick={() => handleToggleNoteExpand(`${dia.id}_blocoB`)}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-blue-700 transition-colors cursor-pointer py-1"
                       >
-                        <Save className="w-3.5 h-3.5" />
-                        <span>Salvar Anotação do Dia</span>
+                        <FileText className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Detalhes & Anotações: {dia.blocoB?.disciplina || 'Matéria 2'}</span>
+                        {expandedNotes[`${dia.id}_blocoB`] ? (
+                          <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                        ) : (
+                          <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                        )}
                       </button>
 
-                      {dayNotes[dia.id] && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (window.confirm('Deseja limpar a anotação deste dia?')) {
-                              handleUpdateDayNotes(dia.id, '');
-                            }
-                          }}
-                          className="text-slate-400 hover:text-red-500 text-[11px] flex items-center gap-1 transition-colors p-1"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                          <span>Limpar</span>
-                        </button>
+                      {subjectNotes[`${dia.id}_blocoB`] && !expandedNotes[`${dia.id}_blocoB`] && (
+                        <span className="text-[11px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">
+                          ✓ Salvo
+                        </span>
                       )}
                     </div>
+
+                    {expandedNotes[`${dia.id}_blocoB`] && (
+                      <div className="mt-2.5 p-3 bg-white rounded-xl border border-slate-200 space-y-2.5 shadow-2xs">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-900">
+                          <span>Registro de Dúvidas, Macetes & Rendimento</span>
+                          {savedNoteToasts[`${dia.id}_blocoB`] ? (
+                            <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                              <Check className="w-3 h-3" /> Salvo no Backup!
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-slate-400 font-normal">Persistido no JSON</span>
+                          )}
+                        </div>
+
+                        <textarea
+                          id={`textarea-note-${dia.id}-blocoB`}
+                          value={subjectNotes[`${dia.id}_blocoB`] || ''}
+                          onChange={(e) => handleUpdateNote(`${dia.id}_blocoB`, e.target.value)}
+                          placeholder={`Ex: Anotações de ${dia.blocoB?.disciplina || 'estudo'} (${dia.blocoB?.subtopico || ''}), pegadinhas Cesgranrio, fórmulas e dúvidas...`}
+                          rows={3}
+                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                        />
+
+                        <div className="flex items-center justify-between pt-1">
+                          <button
+                            type="button"
+                            id={`btn-save-note-${dia.id}-blocoB`}
+                            onClick={() => handleSaveNoteExplicit(`${dia.id}_blocoB`)}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                          >
+                            <Save className="w-3.5 h-3.5" />
+                            <span>Salvar Anotação da Matéria</span>
+                          </button>
+
+                          {subjectNotes[`${dia.id}_blocoB`] && (
+                            <button
+                              type="button"
+                              id={`btn-clear-note-${dia.id}-blocoB`}
+                              onClick={() => handleClearNote(`${dia.id}_blocoB`)}
+                              className="text-slate-400 hover:text-red-500 text-[11px] flex items-center gap-1 transition-colors p-1 cursor-pointer"
+                              title="Limpar anotações desta matéria"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                              <span>Limpar</span>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
               </div>
             </div>
           );

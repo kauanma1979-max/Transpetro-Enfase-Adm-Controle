@@ -82,9 +82,9 @@ export const EditalVerticalizado: React.FC = () => {
     }
   }, [progressState]);
 
-  // Listen to external data restore events
+  // Listen to external data restore events (JSON backup restore only)
   useEffect(() => {
-    const handleStorageChange = () => {
+    const handleStorageRestore = () => {
       try {
         const saved = localStorage.getItem(STORAGE_KEY);
         if (saved) {
@@ -94,8 +94,8 @@ export const EditalVerticalizado: React.FC = () => {
         // ignore
       }
     };
-    window.addEventListener('transpetro_storage_changed', handleStorageChange);
-    return () => window.removeEventListener('transpetro_storage_changed', handleStorageChange);
+    window.addEventListener('transpetro_data_restored', handleStorageRestore);
+    return () => window.removeEventListener('transpetro_data_restored', handleStorageRestore);
   }, []);
 
   const getTopicProgress = (id: string): TopicProgress => {
@@ -165,13 +165,8 @@ export const EditalVerticalizado: React.FC = () => {
   };
 
   const handleClearTopicNotes = (id: string) => {
-    if (window.confirm('Deseja limpar as anotações deste tópico?')) {
-      updateTopicProgress(id, { notas: '' });
-      setSavedTopicToasts(prev => ({ ...prev, [id]: true }));
-      setTimeout(() => {
-        setSavedTopicToasts(prev => ({ ...prev, [id]: false }));
-      }, 2500);
-    }
+    updateTopicProgress(id, { notas: '' });
+    setSavedTopicToasts(prev => ({ ...prev, [id]: false }));
   };
 
   const toggleExpand = (id: string) => {

@@ -43,6 +43,7 @@ export const STORAGE_KEYS = {
 export const notifyDataUpdated = (sourceKey?: string) => {
   try {
     window.dispatchEvent(new CustomEvent('transpetro_storage_changed', { detail: { key: sourceKey } }));
+    window.dispatchEvent(new CustomEvent('transpetro_data_restored', { detail: { key: sourceKey } }));
   } catch (e) {
     // ignore
   }

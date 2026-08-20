@@ -10,8 +10,14 @@ import {
   Calculator, 
   Sparkles,
   Filter,
-  FileText
+  FileText,
+  Edit,
+  Save,
+  Check,
+  Database,
+  X
 } from 'lucide-react';
+import { exportFullBackup, notifyDataUpdated, STORAGE_KEYS } from '../utils/backupStorage';
 
 export interface ErrorEntry {
   id: string;
@@ -69,7 +75,7 @@ const INITIAL_SAMPLE_ERRORS: ErrorEntry[] = [
 
 export const ErrorNotebook: React.FC = () => {
   const [errors, setErrors] = useState<ErrorEntry[]>(() => {
-    const saved = localStorage.getItem('transpetro_caderno_erros');
+    const saved = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
     if (saved) {
       try {
         return JSON.parse(saved);
@@ -83,6 +89,8 @@ export const ErrorNotebook: React.FC = () => {
   const [filterDisc, setFilterDisc] = useState<string>('todas');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  const [editingError, setEditingError] = useState<ErrorEntry | null>(null);
+  const [saveToast, setSaveToast] = useState<string | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -109,8 +117,25 @@ export const ErrorNotebook: React.FC = () => {
   const totalSimPct = Math.round((totalSimAcertos / 40) * 100);
 
   useEffect(() => {
-    localStorage.setItem('transpetro_caderno_erros', JSON.stringify(errors));
+    localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(errors));
+    notifyDataUpdated(STORAGE_KEYS.ERROR_NOTEBOOK);
   }, [errors]);
+
+  // Listen to external data restore
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
+        if (saved) {
+          setErrors(JSON.parse(saved));
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    window.addEventListener('transpetro_storage_changed', handleStorageChange);
+    return () => window.removeEventListener('transpetro_storage_changed', handleStorageChange);
+  }, []);
 
   const handleAddError = (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,6 +162,18 @@ export const ErrorNotebook: React.FC = () => {
       regraCorreta: ''
     });
     setShowAddModal(false);
+    setSaveToast('Novo erro gravado com sucesso no Caderno & Backup!');
+    setTimeout(() => setSaveToast(null), 3000);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingError) return;
+
+    setErrors(errors.map(err => err.id === editingError.id ? editingError : err));
+    setEditingError(null);
+    setSaveToast('Alterações salvas com sucesso no Backup JSON!');
+    setTimeout(() => setSaveToast(null), 3000);
   };
 
   const handleToggleRevisado = (id: string) => {
@@ -146,7 +183,11 @@ export const ErrorNotebook: React.FC = () => {
   };
 
   const handleDeleteError = (id: string) => {
-    setErrors(errors.filter(err => err.id !== id));
+    if (window.confirm('Deseja excluir este registro de erro?')) {
+      setErrors(errors.filter(err => err.id !== id));
+      setSaveToast('Registro excluído do Caderno.');
+      setTimeout(() => setSaveToast(null), 3000);
+    }
   };
 
   const handleExportCSV = () => {
@@ -202,11 +243,20 @@ export const ErrorNotebook: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              id="btn-error-backup-json"
+              onClick={() => exportFullBackup()}
+              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+              title="Baixar backup completo de todos os erros e dados em JSON"
+            >
+              <Database className="w-3.5 h-3.5" />
+              <span>Salvar Backup JSON</span>
+            </button>
             <button
               id="btn-export-csv-errors"
               onClick={handleExportCSV}
-              className="px-3 py-2 bg-slate-100/80 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-200/60"
+              className="px-3 py-2 bg-slate-100/80 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors border border-slate-200/60 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Exportar CSV</span>
@@ -214,13 +264,20 @@ export const ErrorNotebook: React.FC = () => {
             <button
               id="btn-open-add-error"
               onClick={() => setShowAddModal(true)}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors"
+              className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Novo Registro de Erro</span>
             </button>
           </div>
         </div>
+
+        {saveToast && (
+          <div className="mt-3 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 font-semibold flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-600" />
+            <span>{saveToast}</span>
+          </div>
+        )}
       </div>
 
       {/* Simulador de Meta de Específicos (40 Questões) */}
@@ -372,8 +429,16 @@ export const ErrorNotebook: React.FC = () => {
 
                 <div className="flex items-center gap-2 self-end sm:self-auto">
                   <button
+                    onClick={() => setEditingError(err)}
+                    className="text-xs px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors cursor-pointer"
+                    title="Editar Anotações e Detalhes do Erro"
+                  >
+                    <Edit className="w-3.5 h-3.5 text-slate-600" />
+                    <span>Editar / Detalhes</span>
+                  </button>
+                  <button
                     onClick={() => handleToggleRevisado(err.id)}
-                    className={`text-xs px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition-colors ${
+                    className={`text-xs px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1 transition-colors cursor-pointer ${
                       err.revisado
                         ? 'bg-emerald-100 text-emerald-800'
                         : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -384,7 +449,7 @@ export const ErrorNotebook: React.FC = () => {
                   </button>
                   <button
                     onClick={() => handleDeleteError(err.id)}
-                    className="p-1 text-slate-400 hover:text-red-500 transition-colors"
+                    className="p-1 text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
                     title="Excluir Registro"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -495,15 +560,112 @@ export const ErrorNotebook: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors"
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors cursor-pointer"
                 >
                   Salvar Registro
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Error Modal */}
+      {editingError && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Edit className="w-5 h-5 text-emerald-600" />
+                Editar Detalhes & Anotações do Erro
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingError(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Disciplina:</label>
+                <select
+                  value={editingError.disciplina}
+                  onChange={(e) => setEditingError({ ...editingError, disciplina: e.target.value })}
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 font-medium"
+                >
+                  <option value="Logística / Compras">Logística e Gestão de Suprimentos</option>
+                  <option value="Finanças e Contabilidade">Finanças e Contabilidade</option>
+                  <option value="Processos Administrativos">Processos Administrativos e Legislação</option>
+                  <option value="Noções de Informática">Noções de Informática</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Subtópico Exato:</label>
+                <input
+                  type="text"
+                  required
+                  value={editingError.subtopico}
+                  onChange={(e) => setEditingError({ ...editingError, subtopico: e.target.value })}
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Resumo do Enunciado:</label>
+                <textarea
+                  rows={2}
+                  value={editingError.enunciadoResumido}
+                  onChange={(e) => setEditingError({ ...editingError, enunciadoResumido: e.target.value })}
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-red-700 mb-1">Por que errei? (Diagnóstico):</label>
+                <textarea
+                  rows={2}
+                  required
+                  value={editingError.motivoErro}
+                  onChange={(e) => setEditingError({ ...editingError, motivoErro: e.target.value })}
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="block font-bold text-emerald-700 mb-1">Regra Correta / Macete para Prova:</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={editingError.regraCorreta}
+                  onChange={(e) => setEditingError({ ...editingError, regraCorreta: e.target.value })}
+                  className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingError(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors cursor-pointer shadow-xs"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Salvar Alterações no Backup</span>
                 </button>
               </div>
             </form>

@@ -13,6 +13,8 @@ export interface BackupDataPayload {
     verticalSyllabusProgress: Record<string, any>;
     customMaterials: Record<string, any>;
     materialLinks: any[];
+    scheduleDayNotes?: Record<string, string>;
+    bancaNotes?: Record<string, any>;
     otherStorageKeys?: Record<string, any>;
   };
 }
@@ -23,15 +25,27 @@ export interface BackupStats {
   verticalTopicsCount: number;
   customMaterialsCount: number;
   materialLinksCount: number;
+  scheduleNotesCount: number;
+  bancaNotesCount: number;
   totalItems: number;
 }
 
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   COMPLETED_DAYS: 'transpetro_completed_days_v2',
   ERROR_NOTEBOOK: 'transpetro_caderno_erros',
   VERTICAL_SYLLABUS: 'transpetro_edital_verticalizado_progress_v2',
   CUSTOM_MATERIALS: 'transpetro_material_estudo_custom_v1',
-  MATERIAL_LINKS: 'transpetro_material_links_v1'
+  MATERIAL_LINKS: 'transpetro_material_links_v1',
+  SCHEDULE_DAY_NOTES: 'transpetro_schedule_day_notes',
+  BANCA_NOTES: 'transpetro_banca_notes_v1'
+};
+
+export const notifyDataUpdated = (sourceKey?: string) => {
+  try {
+    window.dispatchEvent(new CustomEvent('transpetro_storage_changed', { detail: { key: sourceKey } }));
+  } catch (e) {
+    // ignore
+  }
 };
 
 export const getBackupStats = (): BackupStats => {
@@ -40,6 +54,8 @@ export const getBackupStats = (): BackupStats => {
   let verticalTopicsCount = 0;
   let customMaterialsCount = 0;
   let materialLinksCount = 0;
+  let scheduleNotesCount = 0;
+  let bancaNotesCount = 0;
 
   try {
     const rawDays = localStorage.getItem(STORAGE_KEYS.COMPLETED_DAYS);
@@ -66,20 +82,32 @@ export const getBackupStats = (): BackupStats => {
     if (rawLinks) materialLinksCount = JSON.parse(rawLinks).length || 0;
   } catch (e) { /* ignore */ }
 
+  try {
+    const rawSchedNotes = localStorage.getItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES);
+    if (rawSchedNotes) scheduleNotesCount = Object.keys(JSON.parse(rawSchedNotes)).length || 0;
+  } catch (e) { /* ignore */ }
+
+  try {
+    const rawBancaNotes = localStorage.getItem(STORAGE_KEYS.BANCA_NOTES);
+    if (rawBancaNotes) bancaNotesCount = Object.keys(JSON.parse(rawBancaNotes)).length || 0;
+  } catch (e) { /* ignore */ }
+
   return {
     completedDaysCount,
     errorNotebookCount,
     verticalTopicsCount,
     customMaterialsCount,
     materialLinksCount,
-    totalItems: completedDaysCount + errorNotebookCount + verticalTopicsCount + customMaterialsCount + materialLinksCount
+    scheduleNotesCount,
+    bancaNotesCount,
+    totalItems: completedDaysCount + errorNotebookCount + verticalTopicsCount + customMaterialsCount + materialLinksCount + scheduleNotesCount + bancaNotesCount
   };
 };
 
 export const exportFullBackup = (): void => {
   const now = new Date();
   const payload: BackupDataPayload = {
-    version: '2.0',
+    version: '2.1',
     app: 'Transpetro 2026.3 - Pareto Ênfase 1: Administração e Controle',
     exportTimestamp: now.toISOString(),
     exportDateFormatted: now.toLocaleString('pt-BR'),
@@ -89,6 +117,8 @@ export const exportFullBackup = (): void => {
       verticalSyllabusProgress: {},
       customMaterials: {},
       materialLinks: [],
+      scheduleDayNotes: {},
+      bancaNotes: {},
       otherStorageKeys: {}
     }
   };
@@ -116,6 +146,16 @@ export const exportFullBackup = (): void => {
   try {
     const links = localStorage.getItem(STORAGE_KEYS.MATERIAL_LINKS);
     if (links) payload.data.materialLinks = JSON.parse(links);
+  } catch (e) { /* ignore */ }
+
+  try {
+    const schedNotes = localStorage.getItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES);
+    if (schedNotes) payload.data.scheduleDayNotes = JSON.parse(schedNotes);
+  } catch (e) { /* ignore */ }
+
+  try {
+    const bancaNotes = localStorage.getItem(STORAGE_KEYS.BANCA_NOTES);
+    if (bancaNotes) payload.data.bancaNotes = JSON.parse(bancaNotes);
   } catch (e) { /* ignore */ }
 
   // Grab any additional transpetro keys if existing
@@ -193,6 +233,14 @@ export const importFullBackup = async (file: File): Promise<{ success: boolean; 
           localStorage.setItem(STORAGE_KEYS.MATERIAL_LINKS, JSON.stringify(dataObj.materialLinks));
         }
 
+        if (dataObj.scheduleDayNotes) {
+          localStorage.setItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES, JSON.stringify(dataObj.scheduleDayNotes));
+        }
+
+        if (dataObj.bancaNotes) {
+          localStorage.setItem(STORAGE_KEYS.BANCA_NOTES, JSON.stringify(dataObj.bancaNotes));
+        }
+
         if (dataObj.otherStorageKeys && typeof dataObj.otherStorageKeys === 'object') {
           Object.entries(dataObj.otherStorageKeys).forEach(([k, v]) => {
             if (typeof v === 'string') {
@@ -202,6 +250,8 @@ export const importFullBackup = async (file: File): Promise<{ success: boolean; 
             }
           });
         }
+
+        notifyDataUpdated();
 
         const stats = getBackupStats();
         resolve({

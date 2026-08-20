@@ -24,8 +24,10 @@ import {
   Truck,
   DollarSign,
   FileCheck,
-  Laptop
+  Laptop,
+  Database
 } from 'lucide-react';
+import { exportFullBackup } from '../utils/backupStorage';
 
 export const ParetoMatrix: React.FC = () => {
   const [activeLayer, setActiveLayer] = useState<'camada1' | 'camada2' | 'camada3' | 'todas'>('todas');
@@ -112,44 +114,56 @@ export const ParetoMatrix: React.FC = () => {
             </p>
           </div>
 
-          {/* Layer Filter Pills */}
-          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200/50">
+          {/* Layer Filter Pills & Backup Button */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
             <button
-              id="btn-layer-todas"
-              onClick={() => setActiveLayer('todas')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeLayer === 'todas' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
+              id="btn-pareto-backup-json"
+              onClick={() => exportFullBackup()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+              title="Baixar backup completo de todos os dados do sistema em JSON"
             >
-              Visão Completa
+              <Database className="w-3.5 h-3.5" />
+              <span>Salvar Backup JSON</span>
             </button>
-            <button
-              id="btn-layer-1"
-              onClick={() => setActiveLayer('camada1')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeLayer === 'camada1' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Camada 1 (Macro)
-            </button>
-            <button
-              id="btn-layer-2"
-              onClick={() => setActiveLayer('camada2')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeLayer === 'camada2' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Camada 2 (Meso)
-            </button>
-            <button
-              id="btn-layer-3"
-              onClick={() => setActiveLayer('camada3')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeLayer === 'camada3' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Camada 3 (Micro)
-            </button>
+
+            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100/80 rounded-xl border border-slate-200/50">
+              <button
+                id="btn-layer-todas"
+                onClick={() => setActiveLayer('todas')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeLayer === 'todas' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Visão Completa
+              </button>
+              <button
+                id="btn-layer-1"
+                onClick={() => setActiveLayer('camada1')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeLayer === 'camada1' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Camada 1 (Macro)
+              </button>
+              <button
+                id="btn-layer-2"
+                onClick={() => setActiveLayer('camada2')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeLayer === 'camada2' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Camada 2 (Meso)
+              </button>
+              <button
+                id="btn-layer-3"
+                onClick={() => setActiveLayer('camada3')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeLayer === 'camada3' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Camada 3 (Micro)
+              </button>
+            </div>
           </div>
         </div>
 

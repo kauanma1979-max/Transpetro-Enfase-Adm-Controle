@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   CRONOGRAMA_15_SEMANAS, 
   ScheduleWeek, 
@@ -22,8 +22,16 @@ import {
   RotateCw,
   Layers,
   Flame,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Save,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Trash2,
+  Database
 } from 'lucide-react';
+import { exportFullBackup, notifyDataUpdated, STORAGE_KEYS } from '../utils/backupStorage';
 
 interface StudyScheduleProps {
   completedDays: string[];
@@ -40,6 +48,58 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
 }) => {
   const [selectedWeekNum, setSelectedWeekNum] = useState<number>(1);
   const [activeBlocoFilter, setActiveBlocoFilter] = useState<number | 'todos'>('todos');
+  const [expandedDayNotes, setExpandedDayNotes] = useState<Record<string, boolean>>({});
+  const [dayNotes, setDayNotes] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES);
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+  const [savedDayToasts, setSavedDayToasts] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES, JSON.stringify(dayNotes));
+      notifyDataUpdated(STORAGE_KEYS.SCHEDULE_DAY_NOTES);
+    } catch (e) {
+      console.error('Error saving schedule day notes', e);
+    }
+  }, [dayNotes]);
+
+  // Listen to external data restore
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES);
+        if (saved) {
+          setDayNotes(JSON.parse(saved));
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    window.addEventListener('transpetro_storage_changed', handleStorageChange);
+    return () => window.removeEventListener('transpetro_storage_changed', handleStorageChange);
+  }, []);
+
+  const handleUpdateDayNotes = (dayId: string, text: string) => {
+    setDayNotes(prev => ({ ...prev, [dayId]: text }));
+  };
+
+  const handleSaveDayNotesExplicit = (dayId: string) => {
+    const currentText = dayNotes[dayId] || '';
+    setDayNotes(prev => ({ ...prev, [dayId]: currentText }));
+    setSavedDayToasts(prev => ({ ...prev, [dayId]: true }));
+    setTimeout(() => {
+      setSavedDayToasts(prev => ({ ...prev, [dayId]: false }));
+    }, 2500);
+  };
+
+  const handleToggleDayNotesExpand = (dayId: string) => {
+    setExpandedDayNotes(prev => ({ ...prev, [dayId]: !prev[dayId] }));
+  };
 
   const currentWeek = CRONOGRAMA_15_SEMANAS.find(w => w.numero === selectedWeekNum) || CRONOGRAMA_15_SEMANAS[0];
 
@@ -77,44 +137,56 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
             </p>
           </div>
 
-          {/* Bloco Filter Buttons */}
-          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
+          {/* Bloco Filter & Backup Buttons */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
             <button
-              id="btn-bloco-todos"
-              onClick={() => setActiveBlocoFilter('todos')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeBlocoFilter === 'todos' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
+              id="btn-schedule-backup-json"
+              onClick={() => exportFullBackup()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer shadow-xs"
+              title="Baixar backup completo de todos os dados do cronograma e anotações"
             >
-              Todas (1-15)
+              <Database className="w-3.5 h-3.5" />
+              <span>Salvar Backup JSON</span>
             </button>
-            <button
-              id="btn-bloco-1"
-              onClick={() => { setActiveBlocoFilter(1); setSelectedWeekNum(1); }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeBlocoFilter === 1 ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Bloco 1 (S1-S5 · 105h)
-            </button>
-            <button
-              id="btn-bloco-2"
-              onClick={() => { setActiveBlocoFilter(2); setSelectedWeekNum(6); }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeBlocoFilter === 2 ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Bloco 2 (S6-S10 · 105h)
-            </button>
-            <button
-              id="btn-bloco-3"
-              onClick={() => { setActiveBlocoFilter(3); setSelectedWeekNum(11); }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                activeBlocoFilter === 3 ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Bloco 3 (S11-S15 · 105h)
-            </button>
+
+            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-xl border border-slate-200">
+              <button
+                id="btn-bloco-todos"
+                onClick={() => setActiveBlocoFilter('todos')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeBlocoFilter === 'todos' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Todas (1-15)
+              </button>
+              <button
+                id="btn-bloco-1"
+                onClick={() => { setActiveBlocoFilter(1); setSelectedWeekNum(1); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeBlocoFilter === 1 ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Bloco 1 (S1-S5 · 105h)
+              </button>
+              <button
+                id="btn-bloco-2"
+                onClick={() => { setActiveBlocoFilter(2); setSelectedWeekNum(6); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeBlocoFilter === 2 ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Bloco 2 (S6-S10 · 105h)
+              </button>
+              <button
+                id="btn-bloco-3"
+                onClick={() => { setActiveBlocoFilter(3); setSelectedWeekNum(11); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  activeBlocoFilter === 3 ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                }`}
+              >
+                Bloco 3 (S11-S15 · 105h)
+              </button>
+            </div>
           </div>
         </div>
 
@@ -344,6 +416,83 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
                     <div className="bg-white p-1 rounded-md border border-slate-200 text-purple-700">Revisão: {dia.blocoB?.revisaoMin || 15}m</div>
                   </div>
                 </div>
+              </div>
+
+              {/* Collapsible Details & Personal Notes Section for this Study Day */}
+              <div className="mt-4 pt-3 border-t border-slate-100">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    id={`btn-toggle-day-notes-${dia.id}`}
+                    onClick={() => handleToggleDayNotesExpand(dia.id)}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-emerald-700 transition-colors cursor-pointer py-1"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Detalhes & Anotações do Dia</span>
+                    {expandedDayNotes[dia.id] ? (
+                      <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                    ) : (
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                    )}
+                  </button>
+
+                  {dayNotes[dia.id] && !expandedDayNotes[dia.id] && (
+                    <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                      ✓ Contém anotações
+                    </span>
+                  )}
+                </div>
+
+                {expandedDayNotes[dia.id] && (
+                  <div className="mt-3 p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2.5">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-900">
+                      <span>Registro de Dúvidas, Macetes & Rendimento</span>
+                      {savedDayToasts[dia.id] ? (
+                        <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                          <Check className="w-3 h-3" /> Salvo no Backup!
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 font-normal">Persistido no JSON</span>
+                      )}
+                    </div>
+
+                    <textarea
+                      id={`textarea-day-notes-${dia.id}`}
+                      value={dayNotes[dia.id] || ''}
+                      onChange={(e) => handleUpdateDayNotes(dia.id, e.target.value)}
+                      placeholder="Ex: Hoje foquei na diferença entre Pregão e Concorrência na 14.133. Acertei 18 de 20 questões Cesgranrio. Revisar prazos de recurso amanhã cedo..."
+                      rows={3}
+                      className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                    />
+
+                    <div className="flex items-center justify-between pt-1">
+                      <button
+                        type="button"
+                        id={`btn-save-day-notes-${dia.id}`}
+                        onClick={() => handleSaveDayNotesExplicit(dia.id)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                      >
+                        <Save className="w-3.5 h-3.5" />
+                        <span>Salvar Anotação do Dia</span>
+                      </button>
+
+                      {dayNotes[dia.id] && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (window.confirm('Deseja limpar a anotação deste dia?')) {
+                              handleUpdateDayNotes(dia.id, '');
+                            }
+                          }}
+                          className="text-slate-400 hover:text-red-500 text-[11px] flex items-center gap-1 transition-colors p-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Limpar</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           );

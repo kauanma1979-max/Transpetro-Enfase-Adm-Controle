@@ -34,8 +34,13 @@ import {
   FileCheck,
   Laptop,
   Target,
-  ArrowRight
+  ArrowRight,
+  Save,
+  Check,
+  Database,
+  Trash2
 } from 'lucide-react';
+import { exportFullBackup, notifyDataUpdated, STORAGE_KEYS } from '../utils/backupStorage';
 
 interface TopicProgress {
   teoria: boolean;
@@ -65,14 +70,33 @@ export const EditalVerticalizado: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string>('todos');
   const [expandedTopics, setExpandedTopics] = useState<Record<string, boolean>>({});
   const [collapsedMacroSections, setCollapsedMacroSections] = useState<Record<string, boolean>>({});
+  const [savedTopicToasts, setSavedTopicToasts] = useState<Record<string, boolean>>({});
+  const [globalSaveFeedback, setGlobalSaveFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(progressState));
+      notifyDataUpdated(STORAGE_KEY);
     } catch (e) {
       console.error('Error saving progress to localStorage', e);
     }
   }, [progressState]);
+
+  // Listen to external data restore events
+  useEffect(() => {
+    const handleStorageChange = () => {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          setProgressState(JSON.parse(saved));
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    window.addEventListener('transpetro_storage_changed', handleStorageChange);
+    return () => window.removeEventListener('transpetro_storage_changed', handleStorageChange);
+  }, []);
 
   const getTopicProgress = (id: string): TopicProgress => {
     return progressState[id] || {
@@ -118,12 +142,62 @@ export const EditalVerticalizado: React.FC = () => {
     });
   };
 
+  const handleExplicitSaveTopic = (id: string) => {
+    const current = getTopicProgress(id);
+    updateTopicProgress(id, { ...current });
+    setSavedTopicToasts(prev => ({ ...prev, [id]: true }));
+    setTimeout(() => {
+      setSavedTopicToasts(prev => ({ ...prev, [id]: false }));
+    }, 2500);
+  };
+
+  const handleMarkTopicFullyCompleted = (id: string) => {
+    updateTopicProgress(id, {
+      teoria: true,
+      questoes: true,
+      revisao: true,
+      status: 'dominado'
+    });
+    setSavedTopicToasts(prev => ({ ...prev, [id]: true }));
+    setTimeout(() => {
+      setSavedTopicToasts(prev => ({ ...prev, [id]: false }));
+    }, 2500);
+  };
+
+  const handleClearTopicNotes = (id: string) => {
+    if (window.confirm('Deseja limpar as anotações deste tópico?')) {
+      updateTopicProgress(id, { notas: '' });
+      setSavedTopicToasts(prev => ({ ...prev, [id]: true }));
+      setTimeout(() => {
+        setSavedTopicToasts(prev => ({ ...prev, [id]: false }));
+      }, 2500);
+    }
+  };
+
   const toggleExpand = (id: string) => {
     setExpandedTopics(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const handleExpandAllInView = () => {
+    const next: Record<string, boolean> = {};
+    filteredItems.forEach(i => {
+      next[i.id] = true;
+    });
+    setExpandedTopics(next);
+  };
+
+  const handleCollapseAllInView = () => {
+    setExpandedTopics({});
+  };
+
   const toggleMacroSection = (macroId: string) => {
     setCollapsedMacroSections(prev => ({ ...prev, [macroId]: !prev[macroId] }));
+  };
+
+  const handleDownloadBackupJson = () => {
+    exportFullBackup();
+    setGlobalSaveFeedback('Arquivo de backup JSON gerado com sucesso!');
+    setTimeout(() => setGlobalSaveFeedback(null), 3000);
   };
 
   // Helper for Macro icons
@@ -436,9 +510,18 @@ export const EditalVerticalizado: React.FC = () => {
 
           <div className="flex flex-wrap items-center gap-2">
             <button
+              id="btn-download-backup-json"
+              onClick={handleDownloadBackupJson}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+              title="Baixar arquivo JSON de backup com todas as anotações e progresso"
+            >
+              <Database className="w-4 h-4" />
+              <span>Salvar Backup JSON</span>
+            </button>
+            <button
               id="btn-export-vertical-csv"
               onClick={handleExportCsv}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl border border-slate-300 transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl border border-slate-300 transition-colors shadow-xs cursor-pointer"
               title="Baixar planilha CSV"
             >
               <Download className="w-4 h-4" />
@@ -447,7 +530,7 @@ export const EditalVerticalizado: React.FC = () => {
             <button
               id="btn-activate-alta-priority"
               onClick={handleMarkAllAlta}
-              className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-xl border border-rose-200 transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-xs rounded-xl border border-rose-200 transition-colors shadow-xs cursor-pointer"
               title="Marcar teoria de todos os itens de alta prioridade"
             >
               <Flame className="w-4 h-4 text-rose-500" />
@@ -456,13 +539,20 @@ export const EditalVerticalizado: React.FC = () => {
             <button
               id="btn-reset-vertical-progress"
               onClick={handleResetProgress}
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
               title="Resetar progresso"
             >
               <RotateCcw className="w-4 h-4" />
             </button>
           </div>
         </div>
+
+        {globalSaveFeedback && (
+          <div className="mt-3 p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-900 font-semibold flex items-center gap-2">
+            <Check className="w-4 h-4 text-emerald-600" />
+            <span>{globalSaveFeedback}</span>
+          </div>
+        )}
 
         {/* Global Progress Metric Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mt-6 pt-5 border-t border-slate-100">
@@ -697,22 +787,48 @@ export const EditalVerticalizado: React.FC = () => {
           </div>
         </div>
 
-        {/* Results Counter */}
-        <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
-          <span>Exibindo <strong>{filteredItems.length}</strong> de {totalItems} tópicos</span>
-          {(searchQuery || selectedMacro !== 'todas' || selectedPrioridade !== 'todas' || selectedStatus !== 'todos') && (
+        {/* Results Counter & Bulk Expand Controls */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 pt-1">
+          <div>
+            Exibindo <strong>{filteredItems.length}</strong> de {totalItems} tópicos
+          </div>
+          
+          <div className="flex items-center gap-3">
             <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedMacro('todas');
-                setSelectedPrioridade('todas');
-                setSelectedStatus('todos');
-              }}
-              className="text-emerald-600 hover:text-emerald-700 font-semibold"
+              id="btn-expand-all-topics"
+              onClick={handleExpandAllInView}
+              className="text-emerald-700 hover:text-emerald-800 font-semibold cursor-pointer flex items-center gap-1"
             >
-              Limpar Filtros
+              <ChevronDown className="w-3.5 h-3.5" />
+              <span>Expandir Todos</span>
             </button>
-          )}
+            <span className="text-slate-300">|</span>
+            <button
+              id="btn-collapse-all-topics"
+              onClick={handleCollapseAllInView}
+              className="text-slate-600 hover:text-slate-800 font-semibold cursor-pointer flex items-center gap-1"
+            >
+              <ChevronUp className="w-3.5 h-3.5" />
+              <span>Recolher Todos</span>
+            </button>
+
+            {(searchQuery || selectedMacro !== 'todas' || selectedPrioridade !== 'todas' || selectedStatus !== 'todos') && (
+              <>
+                <span className="text-slate-300">|</span>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedMacro('todas');
+                    setSelectedPrioridade('todas');
+                    setSelectedStatus('todos');
+                  }}
+                  className="text-rose-600 hover:text-rose-700 font-semibold"
+                >
+                  Limpar Filtros
+                </button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1024,20 +1140,64 @@ export const EditalVerticalizado: React.FC = () => {
                                         )}
                                       </div>
 
-                                      {/* Notes Input */}
-                                      <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2">
-                                        <div className="text-xs font-bold text-slate-900 flex items-center justify-between">
-                                          <span>Minhas Anotações & Pontos de Atenção</span>
-                                          <span className="text-[10px] text-slate-400">Salvo automaticamente</span>
+                                      {/* Notes Input & Explicit Save Controls */}
+                                      <div className="bg-white p-3.5 rounded-xl border border-slate-200 space-y-2 flex flex-col justify-between">
+                                        <div>
+                                          <div className="text-xs font-bold text-slate-900 flex items-center justify-between mb-1">
+                                            <span>Minhas Anotações & Pontos de Atenção</span>
+                                            {savedTopicToasts[item.id] ? (
+                                              <span className="text-[10px] text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded-full flex items-center gap-1 animate-pulse">
+                                                <Check className="w-3 h-3" /> Salvo no Backup!
+                                              </span>
+                                            ) : (
+                                              <span className="text-[10px] text-slate-400">Gravado no JSON</span>
+                                            )}
+                                          </div>
+                                          <textarea
+                                            id={`textarea-notas-${item.id}`}
+                                            value={prog.notas || ''}
+                                            onChange={e => updateTopicProgress(item.id, { notas: e.target.value })}
+                                            placeholder="Ex: Pegadinha no art. 29 da 13.303 (dispensa até 100k em compras comuns); DFC indireto soma depreciação..."
+                                            rows={3}
+                                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                                          />
                                         </div>
-                                        <textarea
-                                          id={`textarea-notas-${item.id}`}
-                                          value={prog.notas || ''}
-                                          onChange={e => updateTopicProgress(item.id, { notas: e.target.value })}
-                                          placeholder="Ex: Pegadinha no art. 29 da 13.303 (dispensa até 100k em compras comuns); DFC indireto soma depreciação..."
-                                          rows={3}
-                                          className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
-                                        />
+
+                                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                                          <div className="flex items-center gap-1.5">
+                                            <button
+                                              type="button"
+                                              id={`btn-save-topic-${item.id}`}
+                                              onClick={() => handleExplicitSaveTopic(item.id)}
+                                              className="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                                            >
+                                              <Save className="w-3.5 h-3.5" />
+                                              <span>Salvar</span>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              id={`btn-complete-topic-${item.id}`}
+                                              onClick={() => handleMarkTopicFullyCompleted(item.id)}
+                                              className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-xs font-semibold transition-colors cursor-pointer border border-blue-200"
+                                              title="Marcar Teoria, Questões e Revisão como concluídas"
+                                            >
+                                              <CheckCircle2 className="w-3.5 h-3.5" />
+                                              <span>Concluir 3 Etapas</span>
+                                            </button>
+                                          </div>
+
+                                          {prog.notas && (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleClearTopicNotes(item.id)}
+                                              className="text-slate-400 hover:text-red-500 text-[11px] flex items-center gap-1 transition-colors p-1"
+                                              title="Limpar anotações"
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                              <span>Limpar</span>
+                                            </button>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>

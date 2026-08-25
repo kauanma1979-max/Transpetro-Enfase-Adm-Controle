@@ -31,7 +31,71 @@ export interface MaterialLinkItem {
 }
 
 const INITIAL_DEFAULT_LINKS: MaterialLinkItem[] = [
-  // Processos Adm
+  // Links de Apoio e Bancos de Questões (Transpetro / Marianzo)
+  {
+    id: 'link-custom-1',
+    moduloId: 'geral',
+    titulo: 'DEEP SEEK (MARIANZO)- EXPLICAÇÃO DE QUESTÕES - PROVA',
+    url: 'https://chat.deepseek.com/a/chat/s/d562bc19-1203-4ecb-8b8b-bc11d04495e8',
+    tipo: 'questoes',
+    descricao: 'Resolução comentada e análise técnica aprofundada de questões de concurso.',
+    dataAdicionado: '25/08/2026'
+  },
+  {
+    id: 'link-custom-2',
+    moduloId: 'geral',
+    titulo: 'MANUS (MARIANZO)- EXPLICAÇÃO DE QUESTÕES - PROVA',
+    url: 'https://manus.im/app/WecEatiAKhd0uT51OK8vhR',
+    tipo: 'questoes',
+    descricao: 'Resolução passo a passo de questões da prova Transpetro.',
+    dataAdicionado: '25/08/2026'
+  },
+  {
+    id: 'link-custom-3',
+    moduloId: 'geral',
+    titulo: 'CHAT GPT (MARIANZO)- EXPLICAÇÃO DE QUESTÕES - PROVA',
+    url: 'https://chatgpt.com/c/6a85f139-5324-83e9-bb91-f560811a93f8',
+    tipo: 'questoes',
+    descricao: 'Explicações detalhadas de questões de concurso e apoio nos estudos.',
+    dataAdicionado: '25/08/2026'
+  },
+  {
+    id: 'link-custom-4',
+    moduloId: 'geral',
+    titulo: 'DOLA (MARIANZO)- EXPLICAÇÃO DE QUESTÕES - PROVA',
+    url: 'https://www.dola.com/chat/38416269413905937',
+    tipo: 'questoes',
+    descricao: 'Chat e assistente para resolução de dúvidas e questões de concurso.',
+    dataAdicionado: '25/08/2026'
+  },
+  {
+    id: 'link-custom-5',
+    moduloId: 'proc-adm',
+    titulo: 'PROVA ANTERIOR - PDF',
+    url: 'https://drive.google.com/file/d/1CrkyJffyikHqtSZTP7ujec13Ts-x6o_U/view',
+    tipo: 'pdf',
+    descricao: 'Arquivo PDF oficial da prova anterior da Transpetro / Cesgranrio.',
+    dataAdicionado: '25/08/2026'
+  },
+  {
+    id: 'link-custom-6',
+    moduloId: 'proc-adm',
+    titulo: 'TEC CONCURSOS - GUIA QUESTÕES TRANSPETRO',
+    url: 'https://www.tecconcursos.com.br/guias/transpetro-2026/profissional-transpetro-de-nivel-medio-enfase-1-administracao-e-controle',
+    tipo: 'pdf',
+    descricao: 'Guia direcionado e caderno de questões Cesgranrio no TEC Concursos.',
+    dataAdicionado: '25/08/2026'
+  },
+  {
+    id: 'link-custom-7',
+    moduloId: 'geral',
+    titulo: 'NOVA APOSTILA - ADMINISTRAÇÃO E CONTROLE',
+    url: 'https://aluno.novaconcursos.com.br/#/impresso-digital-detalhe/',
+    tipo: 'questoes',
+    descricao: 'Apostila digital oficial e material de apoio para Administração e Controle.',
+    dataAdicionado: '25/08/2026'
+  },
+  // Legislação e Ferramentas
   {
     id: 'link-init-1',
     moduloId: 'proc-adm',
@@ -50,7 +114,6 @@ const INITIAL_DEFAULT_LINKS: MaterialLinkItem[] = [
     descricao: 'Normas gerais de licitações e contratos aplicáveis subsidiariamente.',
     dataAdicionado: '20/08/2026'
   },
-  // Logistica
   {
     id: 'link-init-3',
     moduloId: 'logistica-scm',
@@ -69,7 +132,6 @@ const INITIAL_DEFAULT_LINKS: MaterialLinkItem[] = [
     descricao: 'Mapeamento oficial dos modais de transporte de petróleo, derivados e biocombustíveis.',
     dataAdicionado: '20/08/2026'
   },
-  // Financas
   {
     id: 'link-init-5',
     moduloId: 'financas-contabilidade',
@@ -79,7 +141,6 @@ const INITIAL_DEFAULT_LINKS: MaterialLinkItem[] = [
     descricao: 'Demonstrações financeiras auditadas, DFC (Método Direto e Indireto) e Balanço Patrimonial real.',
     dataAdicionado: '20/08/2026'
   },
-  // Informatica
   {
     id: 'link-init-6',
     moduloId: 'informatica-lgpd',
@@ -103,7 +164,7 @@ export const MODULOS_OPCOES = [
   { id: 'logistica-scm', nome: 'Logística & SCM' },
   { id: 'financas-contabilidade', nome: 'Finanças & Contabilidade' },
   { id: 'informatica-lgpd', nome: 'Informática & LGPD' },
-  { id: 'geral', nome: 'Geral / Transpetro' }
+  { id: 'geral', nome: 'Geral Transpetro' }
 ];
 
 export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
@@ -116,7 +177,12 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
     const saved = localStorage.getItem('transpetro_material_links_v1');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const existingIds = new Set(parsed.map((p: any) => p.id || p.titulo));
+          const missingDefaults = INITIAL_DEFAULT_LINKS.filter(d => !existingIds.has(d.id) && !existingIds.has(d.titulo));
+          return [...parsed, ...missingDefaults];
+        }
       } catch (e) {
         return INITIAL_DEFAULT_LINKS;
       }
@@ -140,6 +206,9 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
 
   useEffect(() => {
     localStorage.setItem('transpetro_material_links_v1', JSON.stringify(links));
+    try {
+      window.dispatchEvent(new CustomEvent('transpetro_storage_changed', { detail: { key: 'transpetro_material_links_v1' } }));
+    } catch (e) { /* ignore */ }
   }, [links]);
 
   useEffect(() => {
@@ -153,7 +222,11 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
     };
 
     window.addEventListener('transpetro_data_restored', handleRestore);
-    return () => window.removeEventListener('transpetro_data_restored', handleRestore);
+    window.addEventListener('transpetro_storage_changed', handleRestore);
+    return () => {
+      window.removeEventListener('transpetro_data_restored', handleRestore);
+      window.removeEventListener('transpetro_storage_changed', handleRestore);
+    };
   }, []);
 
   // Filter links

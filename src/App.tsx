@@ -16,6 +16,7 @@ import {
   ScheduleDay, 
   CRONOGRAMA_15_SEMANAS, 
   DATA_INICIO_ESTUDOS,
+  DATA_ENCERRAMENTO_ESTUDOS,
   TOTAL_SEMANAS_ESTUDO,
   TOTAL_DIAS_ESTUDO,
   TOTAL_HORAS_ESTUDO 
@@ -98,11 +99,12 @@ export default function App() {
     const report = `# RELATÓRIO DE ESTUDOS ESTRATÉGICO — TRANSPETRO 2026.3
 Ênfase 1: Administração e Controle (Nível Médio)
 Banca: Fundação Cesgranrio | Data da Prova: 29/11/2026 (13h00)
-Início do Plano: ${DATA_INICIO_ESTUDOS}
+Início do Plano: ${DATA_INICIO_ESTUDOS} | Encerramento: ${DATA_ENCERRAMENTO_ESTUDOS}
 
 ## 📊 Status do Candidato (Rotina 3h/dia · 7 dias/semana):
 - Horas Cumpridas: ${completedHours}h de ${totalHours}h totais (${progressPct}%)
 - Dias Estudados: ${completedDays.length} de ${totalDays} dias planejados (${TOTAL_SEMANAS_ESTUDO} semanas)
+- Período: ${DATA_INICIO_ESTUDOS} até ${DATA_ENCERRAMENTO_ESTUDOS}
 - Formato Diário: 3 horas por dia (2 matérias de 1h30 intercaladas)
 - Metodologia: Pareto Recursivo (100% focado nas 40 questões decisivas de Conhecimentos Específicos)
 
@@ -197,7 +199,7 @@ Gerado em: ${new Date().toLocaleString('pt-BR')}
             <span>Edital nº 03/2026 (Ênfase 1: Administração e Controle)</span>
           </div>
           <div className="text-slate-500 font-medium">
-            3h/dia · 7 dias/sem (21h/sem · {totalHours}h Totais · {TOTAL_SEMANAS_ESTUDO} Semanas) · Início em {DATA_INICIO_ESTUDOS}
+            3h/dia · 7 dias/sem (21h/sem · {totalHours}h Totais · {TOTAL_SEMANAS_ESTUDO} Semanas) · {DATA_INICIO_ESTUDOS} a {DATA_ENCERRAMENTO_ESTUDOS}
           </div>
         </div>
       </footer>

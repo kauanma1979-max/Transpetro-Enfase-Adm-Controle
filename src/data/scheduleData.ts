@@ -46,17 +46,17 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
     numero: 1,
     blocoId: 1,
     blocoNome: 'BLOCO 1 — FUNDAÇÃO E LEGISLAÇÃO NUCLEAR (S1 a S5 · 105h)',
-    datas: '17/08 a 23/08/2026',
-    titulo: 'Semana 1: Licitações (14.133/21) + Matemática Financeira e Estatais (13.303/16)',
-    metaSemanal: 'Construir a base nas 2 disciplinas mais pesadas da prova com estudo intercalado diário (3h/dia divididas em 2 matérias de 1h30).',
+    datas: '25/08 a 31/08/2026',
+    titulo: 'Semana 1: Licitações Públicas (14.133/21) + Estatuto das Estatais (13.303/16: Governança, Licitações e Contratos)',
+    metaSemanal: 'Construir a base nas 2 legislações de maior peso da prova da Transpetro com estudo intercalado diário (3h/dia divididas em 2 blocos de 1h30).',
     horasTotais: 21,
     dias: [
       {
         id: 's1-d1',
-        diaSemana: 'Segunda-feira',
-        dataSugerida: '17/08',
+        diaSemana: 'Terça-feira',
+        dataSugerida: '25/08',
         horas: 3,
-        focoGeralDoDia: 'Princípios da Lei 14.133 + Matemática Financeira: Razão, Proporção e %',
+        focoGeralDoDia: 'Princípios da Lei 14.133 + Lei 13.303/16: Governança das Estatais e Requisitos de Administradores',
         blocoA: {
           disciplina: 'Logística / Compras',
           disciplinaId: 'logistica',
@@ -73,27 +73,27 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
           dicaCesgranrio: 'A Cesgranrio costuma trocar Termo de Referência (bens comuns) com Projeto Básico (obras e engenharia).'
         },
         blocoB: {
-          disciplina: 'Finanças / Matemática',
-          disciplinaId: 'financas',
-          subtopico: 'Matemática Financeira: Razão, Proporção, Regra de Três e Fatores de Porcentagem',
+          disciplina: 'Legislação / Estatais',
+          disciplinaId: 'processos_adm',
+          subtopico: 'Lei 13.303/2016 — Campo de Aplicação, Governança Corporativa e Requisitos para Administradores (art. 1º ao 27)',
           duracaoMin: 90,
           teoriaMin: 25,
           questoesMin: 50,
           revisaoMin: 15,
           objetivos: [
-            'Grandezas direta e inversamente proporcionais sem erro de sinal',
-            'Fator multiplicador de aumentos (1+i) e descontos (1-i) sucessivos',
-            'Resolver 15 questões práticas de cálculo rápido'
+            'Regras de governança corporativa, compliance, integridade e comitê de auditoria',
+            'Requisitos e vedações legais para nomeação de administradores e conselheiros (art. 17)',
+            'Resolver 15 questões Cesgranrio sobre governança nas estatais'
           ],
-          dicaCesgranrio: 'Treine simplificação de frações antes de multiplicar para ganhar agilidade na prova.'
+          dicaCesgranrio: 'A Cesgranrio cobra intensamente as vedações para conselho/diretoria (ex: dirigentes partidários ou com conflito de interesse).'
         }
       },
       {
         id: 's1-d2',
-        diaSemana: 'Terça-feira',
-        dataSugerida: '18/08',
+        diaSemana: 'Quarta-feira',
+        dataSugerida: '26/08',
         horas: 3,
-        focoGeralDoDia: 'Modalidades Licitatórias + Juros Simples e Taxas Proporcionais',
+        focoGeralDoDia: 'Modalidades Licitatórias (14.133) + Licitações nas Estatais (Lei 13.303/16: Modos de Disputa e Riscos)',
         blocoA: {
           disciplina: 'Logística / Compras',
           disciplinaId: 'logistica',
@@ -110,27 +110,27 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
           dicaCesgranrio: 'O Pregão é OBRIGATÓRIO para aquisição de bens e serviços comuns.'
         },
         blocoB: {
-          disciplina: 'Finanças / Matemática',
-          disciplinaId: 'financas',
-          subtopico: 'Juros Simples: Montante, Taxa, Prazo e J = C·i·t',
+          disciplina: 'Legislação / Estatais',
+          disciplinaId: 'processos_adm',
+          subtopico: 'Lei 13.303/2016 — Licitações nas Estatais: Modos de Disputa Aberto/Fechado, Matriz de Riscos e Procedimentos Auxiliares (art. 28 ao 67)',
           duracaoMin: 90,
           teoriaMin: 25,
           questoesMin: 50,
           revisaoMin: 15,
           objetivos: [
-            'Fórmula J = C·i·t e M = C·(1 + i·t)',
-            'Conversão de taxas proporcionais (mês para ano no regime simples)',
-            'Resolver 15 questões Cesgranrio de juros simples'
+            'Modos de disputa aberto e fechado e suas combinações permitidas',
+            'Matriz de alocação de riscos obrigatória em obras de grande vulto',
+            'Resolver 15 questões Cesgranrio sobre licitações na Lei 13.303'
           ],
-          dicaCesgranrio: 'Atenção à unidade de tempo: taxa e prazo devem estar sempre no mesmo período.'
+          dicaCesgranrio: 'Nas estatais, a inversão de fases (julgamento antes da habilitação) é a REGRA ordinária do processo licitatório.'
         }
       },
       {
         id: 's1-d3',
-        diaSemana: 'Quarta-feira',
-        dataSugerida: '19/08',
+        diaSemana: 'Quinta-feira',
+        dataSugerida: '27/08',
         horas: 3,
-        focoGeralDoDia: 'Fases da Licitação + Juros Compostos (M = C(1+i)ᵗ)',
+        focoGeralDoDia: 'Fases da Licitação (14.133) + Contratos das Estatais (Lei 13.303/16: Fiscalização e Sanções)',
         blocoA: {
           disciplina: 'Logística / Compras',
           disciplinaId: 'logistica',
@@ -147,19 +147,19 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
           dicaCesgranrio: 'Apenas o licitante classificado em 1º lugar tem seus documentos de habilitação abertos e julgados.'
         },
         blocoB: {
-          disciplina: 'Finanças / Matemática',
-          disciplinaId: 'financas',
-          subtopico: 'Juros Compostos: Cálculo Manual de Potências e Equivalência',
+          disciplina: 'Legislação / Estatais',
+          disciplinaId: 'processos_adm',
+          subtopico: 'Lei 13.303/2016 — Contratos das Estatais: Fiscalização, Alterações Unilaterais e Sanções (art. 68 ao 84)',
           duracaoMin: 90,
           teoriaMin: 25,
           questoesMin: 50,
           revisaoMin: 15,
           objetivos: [
-            'Fórmula M = C·(1+i)ᵗ para t=2 e t=3',
-            'Diferença entre capitalização simples e composta',
-            '15 questões Cesgranrio de cálculo financeiro composto'
+            'Duração contratual, limites legais de aditivos (25% acréscimo/supressão e 50% reforma)',
+            'Sanções de advertência, multa e suspensão temporária de licitar (até 2 anos)',
+            '15 questões Cesgranrio de contratos de estatais'
           ],
-          dicaCesgranrio: 'A Cesgranrio usa valores que permitem simplificação ou frações redondas em nível médio.'
+          dicaCesgranrio: 'Na Lei 13.303/16, a suspensão temporária restringe o direito de licitar apenas perante a própria entidade que aplicou a sanção.'
         }
       },
       {
@@ -297,15 +297,15 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
         blocoB: {
           disciplina: 'Caderno de Erros & Revisão',
           disciplinaId: 'revisao',
-          subtopico: 'Alimentação do Caderno de Erros + Revisão Espaçada de Matemática Financeira e LGPD',
+          subtopico: 'Alimentação do Caderno de Erros + Revisão Espaçada de Legislação (13.303 e 14.133) e LGPD',
           duracaoMin: 90,
           teoriaMin: 0,
           questoesMin: 45,
           revisaoMin: 45,
           objetivos: [
             'Registrar no Caderno de Erros cada questão errada da semana com a justificativa técnica',
-            'Refazer 15 questões de Matemática Financeira onde houve erro de cálculo',
-            'Consolidar fichas de fórmulas e artigos mais cobrados'
+            'Refazer 15 questões de Lei 13.303/16 e 14.133/21 com foco nas pegadinhas da Cesgranrio',
+            'Consolidar tabelas comparativas de prazos, modalidades e sanções'
           ],
           dicaCesgranrio: 'Errar durante o estudo é a melhor oportunidade de fixação. Nunca deixe um erro sem registro da regra correta.'
         }
@@ -1175,19 +1175,19 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
           dicaCesgranrio: 'Mantenha na ponta da língua as peculiaridades das estatais.'
         },
         blocoB: {
-          disciplina: 'Finanças / Matemática',
+          disciplina: 'Finanças / Contabilidade',
           disciplinaId: 'financas',
-          subtopico: 'Revisão Espaçada: Juros Compostos, Descontos e Equivalência de Capitais',
+          subtopico: 'Revisão Espaçada: Demonstrações Contábeis (Balanço Patrimonial, DRE e Fluxo de Caixa DFC)',
           duracaoMin: 90,
           teoriaMin: 20,
           questoesMin: 55,
           revisaoMin: 15,
           objetivos: [
-            'Refazer 20 questões desafiadoras de cálculo financeiro',
-            'Testar agilidade sem calculadora',
-            'Consolidar fórmulas na memória'
+            'Refazer 20 questões Cesgranrio de estrutura patrimonial e apuração do resultado',
+            'Fixar método direto vs. indireto da DFC e contas retificadoras do PL',
+            'Consolidar mapas mentais de contabilidade prática'
           ],
-          dicaCesgranrio: 'Agilidade nos cálculos economiza minutos preciosos para o restante das questões.'
+          dicaCesgranrio: 'Atenção aos lançamentos de depreciação acumulada e provisões que impactam o resultado.'
         }
       },
       {
@@ -1411,7 +1411,7 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
   }
 ];
 
-// Helper para gerar as 15 semanas completas (Semanas 6 a 15) mantendo a mesma estrutura de 3h/dia e 2 blocos diários
+// Helper para gerar as semanas restantes (Semanas 6 a 14) mantendo a estrutura de 3h/dia
 const gerarSemanasRestantes = (): ScheduleWeek[] => {
   const semanasExtras: ScheduleWeek[] = [];
 
@@ -1423,8 +1423,8 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
     },
     {
       num: 7,
-      titulo: 'Semana 7: Gestão Avançada de Contratos, Fiscalização Trabalhista + Matemática Financeira',
-      meta: 'Fixar fiscalização trabalhista de contratos contínuos, retenções e cálculo de amortização/descontos.'
+      titulo: 'Semana 7: Gestão Avançada de Contratos, Fiscalização Trabalhista + Demonstrações Contábeis',
+      meta: 'Fixar fiscalização trabalhista de contratos contínuos, retenções e estruturação do Balanço e DRE.'
     },
     {
       num: 8,
@@ -1458,7 +1458,7 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
         blocoA: {
           disciplina: idx % 2 === 0 ? 'Logística e Compras' : 'Finanças e Contabilidade',
           disciplinaId: idx % 2 === 0 ? 'logistica' : 'financas',
-          subtopico: idx % 2 === 0 ? 'Bateria de 25 Questões Cesgranrio: Lei 13.303/16 e Gestão Contratual' : 'Demonstrações Contábeis e Matemática Financeira Aplicada',
+          subtopico: idx % 2 === 0 ? 'Bateria de 25 Questões Cesgranrio: Lei 13.303/16 e Gestão Contratual' : 'Demonstrações Contábeis e Estrutura Financeira (Balanço, DRE e DFC)',
           duracaoMin: 90,
           teoriaMin: 20,
           questoesMin: 55,
@@ -1506,13 +1506,8 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
     },
     {
       num: 13,
-      titulo: 'Semana 13: Repassagem Completa das Leis 13.303 e 14.133 + DFC + Fórmulas',
-      meta: 'Revisão ultra-rápida de todos os artigos mais cobrados, prazos, fórmulas e atalhos de Excel.'
-    },
-    {
-      num: 14,
-      titulo: 'Semana 14: Semana da Prova (29/11/2026) — Revisão de Véspera e Estabilização',
-      meta: 'Revisão exclusiva do Caderno de Erros, descanso cognitivo e chegada no domingo com confiança total.'
+      titulo: 'Semana 13: Repassagem Completa das Leis 13.303 e 14.133 + DFC + Gestão de Estoques',
+      meta: 'Revisão ultra-rápida de todos os artigos mais cobrados, prazos, fórmulas de estoque e atalhos de Excel.'
     }
   ];
 
@@ -1520,7 +1515,7 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
     semanasExtras.push({
       numero: tema.num,
       blocoId: 3,
-      blocoNome: 'BLOCO 3 — FECHAMENTO E RETA FINAL (S10 a S14 · 105h)',
+      blocoNome: 'BLOCO 3 — FECHAMENTO E RETA FINAL (S10 a S14 · 99h)',
       datas: '',
       titulo: tema.titulo,
       metaSemanal: tema.meta,
@@ -1550,7 +1545,7 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
         blocoB: {
           disciplina: idx === 6 ? 'Caderno de Erros' : 'Revisão & Caderno de Erros',
           disciplinaId: 'revisao',
-          subtopico: 'Revisão Focada no Caderno de Erros e Fórmulas Decisivas',
+          subtopico: 'Revisão Focada no Caderno de Erros e Tópicos Nucleares',
           duracaoMin: 90,
           teoriaMin: 0,
           questoesMin: 45,
@@ -1559,10 +1554,208 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
             'Revisar cada detalhe anotado no Caderno de Erros',
             'Garantir que nenhum erro anterior se repita'
           ],
-          dicaCesgranrio: 'Na semana da prova, priorize a consolidação do que já foi aprendido e uma boa rotina de sono.'
+          dicaCesgranrio: 'Na reta final, priorize a consolidação do que já foi aprendido e a eliminação de dúvidas recorrentes.'
         }
       }))
     });
+  });
+
+  // SEMANA 14: Reta Final e Véspera da Prova (5 dias, encerrando rigorosamente em 28/11/2026)
+  semanasExtras.push({
+    numero: 14,
+    blocoId: 3,
+    blocoNome: 'BLOCO 3 — FECHAMENTO E RETA FINAL (S10 a S14 · 99h)',
+    datas: '',
+    titulo: 'Semana 14: Semana da Prova (Encerramento em 28/11/2026) — Revisão de Véspera e Estabilização',
+    metaSemanal: 'Revisão final estratégica dos pontos de maior incidência, consulta ao Caderno de Erros e descanso cognitivo para a prova de domingo (29/11/2026 às 13h00).',
+    horasTotais: 15, // 5 dias x 3 horas = 15 horas
+    dias: [
+      {
+        id: 's14-d1',
+        diaSemana: 'Terça-feira',
+        dataSugerida: '',
+        horas: 3,
+        focoGeralDoDia: 'Repassagem Final: Leis 13.303/16 (Estatais) e 14.133/21 + Balanço Patrimonial e DRE',
+        blocoA: {
+          disciplina: 'Legislação / Licitações',
+          disciplinaId: 'logistica',
+          subtopico: 'Repassagem Relâmpago: Artigos Chave das Leis 13.303/16 e 14.133/21',
+          duracaoMin: 90,
+          teoriaMin: 20,
+          questoesMin: 55,
+          revisaoMin: 15,
+          objetivos: [
+            'Revisar limites de dispensa de valor, modalidades e prazos de recursos',
+            'Fixar regras de governança e sanções administrativas das estatais',
+            'Resolver 20 questões rápidas de fixação'
+          ],
+          dicaCesgranrio: 'Foque nos artigos 28 a 32 da Lei 13.303/16 e nos artigos 74 e 75 da Lei 14.133/21.'
+        },
+        blocoB: {
+          disciplina: 'Finanças / Contabilidade',
+          disciplinaId: 'financas',
+          subtopico: 'Repassagem Relâmpago: Balanço Patrimonial e DRE',
+          duracaoMin: 90,
+          teoriaMin: 20,
+          questoesMin: 55,
+          revisaoMin: 15,
+          objetivos: [
+            'Revisar estrutura do Balanço (Circulante vs Não Circulante) e DRE',
+            'Fixar apuração do Lucro Líquido e contas retificadoras',
+            'Resolver 15 questões Cesgranrio'
+          ],
+          dicaCesgranrio: 'Não perca pontos em questões conceituais de grupos de contas do Balanço.'
+        }
+      },
+      {
+        id: 's14-d2',
+        diaSemana: 'Quarta-feira',
+        dataSugerida: '',
+        horas: 3,
+        focoGeralDoDia: 'Repassagem Final: Gestão de Estoques (Curva ABC / LEC / PEPS) + RH (C.H.A. e Avaliação 360°)',
+        blocoA: {
+          disciplina: 'Logística / Estoques',
+          disciplinaId: 'logistica',
+          subtopico: 'Repassagem Relâmpago: Dimensionamento de Estoques e Curva ABC',
+          duracaoMin: 90,
+          teoriaMin: 20,
+          questoesMin: 55,
+          revisaoMin: 15,
+          objetivos: [
+            'Fórmulas: Ponto de Pedido (PP = C x TR + ES) e Curva ABC (80/20)',
+            'Diferenças práticas entre PEPS (FIFO) e Média Ponderada Móvel',
+            'Resolver 15 questões de estoques'
+          ],
+          dicaCesgranrio: 'Em períodos de inflação, o método PEPS resulta em maior lucro contábil e maior valor de estoque final.'
+        },
+        blocoB: {
+          disciplina: 'Processos Adm. / RH',
+          disciplinaId: 'processos_adm',
+          subtopico: 'Repassagem Relâmpago: Gestão por Competências (C.H.A.) e Avaliação de Desempenho',
+          duracaoMin: 90,
+          teoriaMin: 20,
+          questoesMin: 55,
+          revisaoMin: 15,
+          objetivos: [
+            'Revisar modelo C.H.A. (Conhecimento = Saber, Habilidade = Saber Fazer, Atitude = Querer Fazer)',
+            'Avaliação 360° (múltiplas fontes) vs 180° vs Escalas Gráficas',
+            'Resolver 15 questões Cesgranrio de RH'
+          ],
+          dicaCesgranrio: 'A Cesgranrio costuma associar o Modelo C.H.A. às dimensões de entrega e desenvolvimento de pessoas.'
+        }
+      },
+      {
+        id: 's14-d3',
+        diaSemana: 'Quinta-feira',
+        dataSugerida: '',
+        horas: 3,
+        focoGeralDoDia: 'Repassagem Final: SGI (ISO 9001/14001/45001) + Informática (Excel Fórmulas e LGPD)',
+        blocoA: {
+          disciplina: 'Processos Adm. / SGI',
+          disciplinaId: 'processos_adm',
+          subtopico: 'Repassagem Relâmpago: Sistema de Gestão Integrado (ISO 9001, 14001 e 45001)',
+          duracaoMin: 90,
+          teoriaMin: 20,
+          questoesMin: 55,
+          revisaoMin: 15,
+          objetivos: [
+            'Mapear: ISO 9001 (Qualidade), ISO 14001 (Meio Ambiente) e ISO 45001 (Saúde/Segurança)',
+            'Ciclo PDCA aplicado a auditorias e tratamento de não conformidades',
+            'Resolver 15 questões Cesgranrio de SGI'
+          ],
+          dicaCesgranrio: 'A ISO 45001 substituiu a antiga OHSAS 18001 com foco em liderança e participação dos trabalhadores.'
+        },
+        blocoB: {
+          disciplina: 'Noções de Informática',
+          disciplinaId: 'informatica',
+          subtopico: 'Repassagem Relâmpago: Funções Essenciais do Excel + Bases da LGPD',
+          duracaoMin: 90,
+          teoriaMin: 20,
+          questoesMin: 55,
+          revisaoMin: 15,
+          objetivos: [
+            'Revisar sintaxe das funções PROCX, PROCV, SE, CONT.SE e SOMASE',
+            'Princípios da LGPD, direitos do titular e agentes de tratamento (Controlador x Operador)',
+            'Resolver 15 questões de Informática'
+          ],
+          dicaCesgranrio: 'Atenção aos delimitadores de ponto e vírgula e argumentos obrigatórios no Excel.'
+        }
+      },
+      {
+        id: 's14-d4',
+        diaSemana: 'Sexta-feira',
+        dataSugerida: '',
+        horas: 3,
+        focoGeralDoDia: 'Simulação Rápida & Pegadinhas Cesgranrio + Revisão das Questões Mais Erradas',
+        blocoA: {
+          disciplina: 'Simulação & Treino',
+          disciplinaId: 'simulado',
+          subtopico: 'Treino de Velocidade: 30 Questões Rápidas Cesgranrio (Específicos)',
+          duracaoMin: 90,
+          teoriaMin: 0,
+          questoesMin: 70,
+          revisaoMin: 20,
+          objetivos: [
+            'Resolver 30 questões cronometradas (2 minutos por questão)',
+            'Treinar a identificação rápida das pegadinhas de negação e alternativas incorretas',
+            'Avaliar acurácia'
+          ],
+          dicaCesgranrio: 'Mantenha a tranquilidade. Você treinou os tópicos de maior peso da banca.'
+        },
+        blocoB: {
+          disciplina: 'Caderno de Erros',
+          disciplinaId: 'revisao',
+          subtopico: 'Varredura das Questões Críticas do Caderno de Erros',
+          duracaoMin: 90,
+          teoriaMin: 0,
+          questoesMin: 45,
+          revisaoMin: 45,
+          objetivos: [
+            'Revisar os 20 pontos de maior incidência de erro durante toda a preparação',
+            'Garantir a fixação definitiva das regras corretas'
+          ],
+          dicaCesgranrio: 'A leitura das justificativas dos seus erros passados blinda sua mente contra as armadilhas da prova.'
+        }
+      },
+      {
+        id: 's14-d5',
+        diaSemana: 'Sábado',
+        dataSugerida: '',
+        horas: 3,
+        focoGeralDoDia: 'Véspera da Prova (28/11/2026): Revisão Leve Exclusiva do Caderno de Erros + Descanso Cognitivo',
+        blocoA: {
+          disciplina: 'Revisão de Véspera',
+          disciplinaId: 'revisao',
+          subtopico: 'Revisão Leve e Estratégica: Fichas Resumo e Caderno de Erros',
+          duracaoMin: 90,
+          teoriaMin: 30,
+          questoesMin: 30,
+          revisaoMin: 30,
+          objetivos: [
+            'Leitura leve das fichas de fórmulas e artigos mais cobrados',
+            'Última passada visual nas anotações do Caderno de Erros',
+            'Encerrar os estudos ao meio-dia e descansar a mente'
+          ],
+          dicaCesgranrio: 'Na véspera, menos é mais. Não tente aprender matéria nova; confie nas centenas de horas já dedicadas.'
+        },
+        blocoB: {
+          disciplina: 'Preparação Logística & Mental',
+          disciplinaId: 'revisao',
+          subtopico: 'Checklist Logístico da Prova + Descanso e Hidratação',
+          duracaoMin: 90,
+          teoriaMin: 0,
+          questoesMin: 0,
+          revisaoMin: 90,
+          objetivos: [
+            'Separar documento oficial original com foto e cartão de confirmação de inscrição',
+            'Separar 3 canetas esferográficas de tinta preta fabricadas em material transparente',
+            'Definir rota até o local de prova com antecedência mínima de 1h30 (chegada até 11h30 para prova às 13h00)',
+            'Hidratação adequada, alimentação leve e sono reparador de pelo menos 8 horas'
+          ],
+          dicaCesgranrio: 'Os portões fecham rigorosamente no horário estabelecido pela Cesgranrio. Chegue cedo!'
+        }
+      }
+    ]
   });
 
   return semanasExtras;
@@ -1580,11 +1773,12 @@ const mesHoje = String(hoje.getMonth() + 1).padStart(2, '0');
 const anoHoje = hoje.getFullYear();
 
 export const DATA_INICIO_ESTUDOS = `${diaHoje}/${mesHoje}/${anoHoje}`;
+export const DATA_ENCERRAMENTO_ESTUDOS = '28/11/2026';
 export const DATA_PROVA_OFICIAL = '29/11/2026';
 
 export const TOTAL_SEMANAS_ESTUDO = CRONOGRAMA_15_SEMANAS.length; // 14 semanas
-export const TOTAL_DIAS_ESTUDO = CRONOGRAMA_15_SEMANAS.reduce((acc, sem) => acc + sem.dias.length, 0); // 98 dias
-export const TOTAL_HORAS_ESTUDO = TOTAL_DIAS_ESTUDO * 3; // 294 horas (3h/dia)
+export const TOTAL_DIAS_ESTUDO = CRONOGRAMA_15_SEMANAS.reduce((acc, sem) => acc + sem.dias.length, 0); // 96 dias
+export const TOTAL_HORAS_ESTUDO = TOTAL_DIAS_ESTUDO * 3; // 288 horas (3h/dia)
 
 const NOMES_DIAS_SEMANA_MAP = [
   'Domingo',
@@ -1596,7 +1790,7 @@ const NOMES_DIAS_SEMANA_MAP = [
   'Sábado'
 ];
 
-// Normaliza todas as semanas e dias para iniciar rigorosamente na data de HOJE
+// Normaliza todas as semanas e dias para iniciar rigorosamente na data de HOJE e encerrar em 28/11/2026
 (function normalizarDatasParaHoje() {
   const dataBase = new Date();
   dataBase.setHours(0, 0, 0, 0);
@@ -1615,6 +1809,7 @@ const NOMES_DIAS_SEMANA_MAP = [
     fimSemana.setDate(dataBase.getDate() + sIdx * 7 + (semana.dias.length - 1));
 
     semana.datas = `${formataDiaMes(inicioSemana)} a ${formataDiaMes(fimSemana)}/${fimSemana.getFullYear()}`;
+    semana.horasTotais = semana.dias.length * 3;
 
     semana.dias.forEach((dia, dIdx) => {
       const dataDia = new Date(dataBase);

@@ -8,7 +8,7 @@ import {
   Calendar,
   Sparkles
 } from 'lucide-react';
-import { DATA_INICIO_ESTUDOS } from '../data/scheduleData';
+import { DATA_INICIO_ESTUDOS, DATA_ENCERRAMENTO_ESTUDOS } from '../data/scheduleData';
 
 interface HeaderProps {
   completedHours: number;
@@ -110,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </span>
                 </h1>
                 <p className="text-xs text-slate-400 leading-none mt-1">
-                  Transpetro Nível Médio · {totalHours}h Totais · Início em {DATA_INICIO_ESTUDOS}
+                  Transpetro Nível Médio · {totalHours}h Totais · Início em {DATA_INICIO_ESTUDOS} · Término em {DATA_ENCERRAMENTO_ESTUDOS}
                 </p>
               </div>
             </div>

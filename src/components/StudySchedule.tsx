@@ -5,7 +5,9 @@ import {
   ScheduleDay,
   SessionBlock,
   TOTAL_SEMANAS_ESTUDO,
-  TOTAL_HORAS_ESTUDO
+  TOTAL_HORAS_ESTUDO,
+  DATA_INICIO_ESTUDOS,
+  DATA_ENCERRAMENTO_ESTUDOS
 } from '../data/scheduleData';
 import { 
   CheckCircle2, 
@@ -198,7 +200,7 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
                   activeBlocoFilter === 3 ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Bloco 3 (S10-S14 · 105h)
+                Bloco 3 (S10-S14 · 99h)
               </button>
             </div>
           </div>
@@ -207,7 +209,7 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
         {/* Week Selector Horizontal Scroller */}
         <div className="mt-5 pt-4 border-t border-slate-100">
           <div className="text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider flex items-center justify-between">
-            <span>Navegar pelas {TOTAL_SEMANAS_ESTUDO} Semanas (7 Dias por Semana):</span>
+            <span>Navegar pelas {TOTAL_SEMANAS_ESTUDO} Semanas ({DATA_INICIO_ESTUDOS} até {DATA_ENCERRAMENTO_ESTUDOS}):</span>
             <span className="text-emerald-700 font-mono font-semibold">Semana {selectedWeekNum} de {TOTAL_SEMANAS_ESTUDO}</span>
           </div>
 

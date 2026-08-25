@@ -73,6 +73,15 @@ export const REGRAS_DE_CORTE: CutRuleItem[] = [
     horasEconomizadas: '5 horas',
     disciplina: 'Logística / Estoques'
   },
+  {
+    id: 'corte-8',
+    item: 'Matemática Financeira (Razão, Proporção, Regra de Três, Juros Simples e Juros Compostos)',
+    motivoCorte: 'Corte estratégico aplicado para alocar todo o tempo disponível nas matérias extensas e de maior peso decisivo no edital (Leis 13.303/16 e 14.133/21, Balanço/DRE/DFC e Gestão de Estoques/RH).',
+    tradeOffAceito: 'Tempo 100% reinvestido nos temas de maior incidência estatística (Pareto 80/20).',
+    tipo: 'corte_total',
+    horasEconomizadas: '18 horas reinvestidas em Legislação e Contabilidade',
+    disciplina: 'Finanças / Matemática'
+  },
 
   // ESTUDAR POR ÚLTIMO (SÓ SE SOBRAR TEMPO)
   {
@@ -124,7 +133,7 @@ export const REGRAS_DE_CORTE: CutRuleItem[] = [
 
 export const TRADE_OFF_EXPLICITO = {
   titulo: 'O Trade-off Central do Método Pareto Recursivo',
-  premissa: 'Com a rotina diária de 3h/dia (7 dias/semana · 294h de estudo líquido até a prova de 29/11/2026), o objetivo não é ler livros acadêmicos intermináveis, mas sim dominar com profundidade máxima o que realmente cai na Fundação Cesgranrio.',
+  premissa: 'Com a rotina diária de 3h/dia (7 dias/semana · 288h de estudo líquido até o encerramento em 28/11/2026 e prova em 29/11/2026), o objetivo não é ler livros acadêmicos intermináveis, mas sim dominar com profundidade máxima o que realmente cai na Fundação Cesgranrio.',
   decisaoEstrategica: 'O plano corta tópicos de baixa relevância e foca nas matérias de peso 100% decisivo, liberando dezenas de horas para você dominar com maestria absoluta os tópicos nucleares que respondem por mais de 80% das 40 questões de Conhecimentos Específicos.',
   ganhoEstimado: 'Ganho líquido de +8 a 12 questões garantidas na prova objetiva, com perda estimada de no máximo 1 a 2 questões residuais nos cortes.',
   regraDeOuro: 'Lembre-se: O edital estabelece no item 7.1.2 "d" c/c 7.1.4.2.1 que a nota de habilitação é 100% definida pela Prova de Específicos. Quem domina Específicos entra na lista dos aprovados!'

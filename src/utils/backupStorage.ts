@@ -105,10 +105,10 @@ export const getBackupStats = (): BackupStats => {
   };
 };
 
-export const exportFullBackup = (): void => {
+export const generateBackupPayload = (): BackupDataPayload => {
   const now = new Date();
   const payload: BackupDataPayload = {
-    version: '2.1',
+    version: '2.2',
     app: 'Transpetro 2026.3 - Pareto Ênfase 1: Administração e Controle',
     exportTimestamp: now.toISOString(),
     exportDateFormatted: now.toLocaleString('pt-BR'),
@@ -176,19 +176,136 @@ export const exportFullBackup = (): void => {
     }
   }
 
+  return payload;
+};
+
+export const getBackupJsonString = (): string => {
+  return JSON.stringify(generateBackupPayload(), null, 2);
+};
+
+export const copyBackupToClipboard = async (): Promise<boolean> => {
+  try {
+    const jsonStr = getBackupJsonString();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(jsonStr);
+      return true;
+    } else {
+      // Fallback for environments where clipboard API is restricted
+      const textarea = document.createElement('textarea');
+      textarea.value = jsonStr;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      return successful;
+    }
+  } catch (e) {
+    console.error('Failed to copy to clipboard', e);
+    return false;
+  }
+};
+
+export const exportFullBackup = (): void => {
+  const payload = generateBackupPayload();
   const jsonStr = JSON.stringify(payload, null, 2);
   const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const downloadLink = document.createElement('a');
   
+  const now = new Date();
   const dateSuffix = now.toISOString().slice(0, 10);
   const timeSuffix = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
   downloadLink.href = url;
-  downloadLink.download = `backup_transpetro_2026_${dateSuffix}_${timeSuffix}.json`;
+  downloadLink.setAttribute('download', `backup_transpetro_2026_${dateSuffix}_${timeSuffix}.json`);
   document.body.appendChild(downloadLink);
   downloadLink.click();
-  document.body.removeChild(downloadLink);
-  URL.revokeObjectURL(url);
+  
+  // Safe cleanup with timeout to prevent premature revocation in sandboxed iframes
+  setTimeout(() => {
+    try {
+      document.body.removeChild(downloadLink);
+      URL.revokeObjectURL(url);
+    } catch (e) { /* ignore */ }
+  }, 1000);
+};
+
+export const restoreFromRawData = (dataObj: any): { success: boolean; message: string; stats?: BackupStats } => {
+  try {
+    if (!dataObj || typeof dataObj !== 'object') {
+      return { success: false, message: 'Formato de dados inválido.' };
+    }
+
+    const payload = dataObj.data || dataObj;
+
+    if (payload.completedDays && Array.isArray(payload.completedDays)) {
+      localStorage.setItem(STORAGE_KEYS.COMPLETED_DAYS, JSON.stringify(payload.completedDays));
+    }
+
+    if (payload.errorNotebook && Array.isArray(payload.errorNotebook)) {
+      localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(payload.errorNotebook));
+    }
+
+    if (payload.verticalSyllabusProgress && typeof payload.verticalSyllabusProgress === 'object') {
+      localStorage.setItem(STORAGE_KEYS.VERTICAL_SYLLABUS, JSON.stringify(payload.verticalSyllabusProgress));
+    }
+
+    if (payload.customMaterials && typeof payload.customMaterials === 'object') {
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_MATERIALS, JSON.stringify(payload.customMaterials));
+    }
+
+    if (payload.materialLinks && Array.isArray(payload.materialLinks)) {
+      localStorage.setItem(STORAGE_KEYS.MATERIAL_LINKS, JSON.stringify(payload.materialLinks));
+    }
+
+    if (payload.scheduleDayNotes && typeof payload.scheduleDayNotes === 'object') {
+      localStorage.setItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES, JSON.stringify(payload.scheduleDayNotes));
+    }
+
+    if (payload.bancaNotes && typeof payload.bancaNotes === 'object') {
+      localStorage.setItem(STORAGE_KEYS.BANCA_NOTES, JSON.stringify(payload.bancaNotes));
+    }
+
+    if (payload.otherStorageKeys && typeof payload.otherStorageKeys === 'object') {
+      Object.entries(payload.otherStorageKeys).forEach(([k, v]) => {
+        if (typeof v === 'string') {
+          localStorage.setItem(k, v);
+        } else {
+          localStorage.setItem(k, JSON.stringify(v));
+        }
+      });
+    }
+
+    notifyDataUpdated();
+
+    const stats = getBackupStats();
+    return {
+      success: true,
+      message: `Backup restaurado com sucesso! Foram carregados ${stats.completedDaysCount} dias concluídos, ${stats.verticalTopicsCount} tópicos do edital, ${stats.errorNotebookCount} registros no caderno de erros e ${stats.materialLinksCount} links/arquivos de materiais.`,
+      stats
+    };
+  } catch (err: any) {
+    return {
+      success: false,
+      message: `Erro ao aplicar dados de backup: ${err?.message || 'Erro desconhecido.'}`
+    };
+  }
+};
+
+export const importBackupFromJsonString = (jsonString: string): { success: boolean; message: string; stats?: BackupStats } => {
+  try {
+    if (!jsonString || !jsonString.trim()) {
+      return { success: false, message: 'O texto JSON fornecido está vazio.' };
+    }
+    const parsed = JSON.parse(jsonString);
+    return restoreFromRawData(parsed);
+  } catch (err: any) {
+    return {
+      success: false,
+      message: `Erro ao analisar JSON: Formato inválido. Detalhe: ${err?.message || 'Sintaxe inválida'}`
+    };
+  }
 };
 
 export const importFullBackup = async (file: File): Promise<{ success: boolean; message: string; stats?: BackupStats }> => {
@@ -204,62 +321,8 @@ export const importFullBackup = async (file: File): Promise<{ success: boolean; 
         }
 
         const parsed = JSON.parse(content);
-
-        // Basic payload validation
-        if (!parsed || (typeof parsed !== 'object')) {
-          resolve({ success: false, message: 'Formato de arquivo JSON inválido.' });
-          return;
-        }
-
-        // Support both direct data structures and wrapped payload structures
-        const dataObj = parsed.data || parsed;
-
-        if (dataObj.completedDays) {
-          localStorage.setItem(STORAGE_KEYS.COMPLETED_DAYS, JSON.stringify(dataObj.completedDays));
-        }
-
-        if (dataObj.errorNotebook) {
-          localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(dataObj.errorNotebook));
-        }
-
-        if (dataObj.verticalSyllabusProgress) {
-          localStorage.setItem(STORAGE_KEYS.VERTICAL_SYLLABUS, JSON.stringify(dataObj.verticalSyllabusProgress));
-        }
-
-        if (dataObj.customMaterials) {
-          localStorage.setItem(STORAGE_KEYS.CUSTOM_MATERIALS, JSON.stringify(dataObj.customMaterials));
-        }
-
-        if (dataObj.materialLinks) {
-          localStorage.setItem(STORAGE_KEYS.MATERIAL_LINKS, JSON.stringify(dataObj.materialLinks));
-        }
-
-        if (dataObj.scheduleDayNotes) {
-          localStorage.setItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES, JSON.stringify(dataObj.scheduleDayNotes));
-        }
-
-        if (dataObj.bancaNotes) {
-          localStorage.setItem(STORAGE_KEYS.BANCA_NOTES, JSON.stringify(dataObj.bancaNotes));
-        }
-
-        if (dataObj.otherStorageKeys && typeof dataObj.otherStorageKeys === 'object') {
-          Object.entries(dataObj.otherStorageKeys).forEach(([k, v]) => {
-            if (typeof v === 'string') {
-              localStorage.setItem(k, v);
-            } else {
-              localStorage.setItem(k, JSON.stringify(v));
-            }
-          });
-        }
-
-        notifyDataUpdated();
-
-        const stats = getBackupStats();
-        resolve({
-          success: true,
-          message: `Backup restaurado com sucesso! Foram recuperados ${stats.completedDaysCount} dias concluídos, ${stats.verticalTopicsCount} tópicos do edital, ${stats.errorNotebookCount} registros no caderno de erros e ${stats.materialLinksCount} links de materiais.`,
-          stats
-        });
+        const result = restoreFromRawData(parsed);
+        resolve(result);
       } catch (err: any) {
         resolve({
           success: false,
@@ -275,3 +338,4 @@ export const importFullBackup = async (file: File): Promise<{ success: boolean; 
     reader.readAsText(file);
   });
 };
+

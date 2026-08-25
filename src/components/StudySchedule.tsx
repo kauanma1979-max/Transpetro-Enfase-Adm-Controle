@@ -3,7 +3,9 @@ import {
   CRONOGRAMA_15_SEMANAS, 
   ScheduleWeek, 
   ScheduleDay,
-  SessionBlock
+  SessionBlock,
+  TOTAL_SEMANAS_ESTUDO,
+  TOTAL_HORAS_ESTUDO
 } from '../data/scheduleData';
 import { 
   CheckCircle2, 
@@ -131,7 +133,7 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
           <div>
             <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 rounded-full text-[11px] font-bold uppercase tracking-wider">
-                15 Semanas · 315 Horas
+                {TOTAL_SEMANAS_ESTUDO} Semanas · {TOTAL_HORAS_ESTUDO} Horas
               </span>
               <span className="text-xs text-slate-500 font-semibold">
                 3h/dia · 7 dias/semana (21h/sem)
@@ -169,7 +171,7 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
                   activeBlocoFilter === 'todos' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Todas (1-15)
+                Todas (1-{TOTAL_SEMANAS_ESTUDO})
               </button>
               <button
                 id="btn-bloco-1"
@@ -187,16 +189,16 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
                   activeBlocoFilter === 2 ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Bloco 2 (S6-S10 · 105h)
+                Bloco 2 (S6-S9 · 84h)
               </button>
               <button
                 id="btn-bloco-3"
-                onClick={() => { setActiveBlocoFilter(3); setSelectedWeekNum(11); }}
+                onClick={() => { setActiveBlocoFilter(3); setSelectedWeekNum(10); }}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                   activeBlocoFilter === 3 ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
-                Bloco 3 (S11-S15 · 105h)
+                Bloco 3 (S10-S14 · 105h)
               </button>
             </div>
           </div>
@@ -205,8 +207,8 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
         {/* Week Selector Horizontal Scroller */}
         <div className="mt-5 pt-4 border-t border-slate-100">
           <div className="text-[11px] font-bold text-slate-500 mb-2 uppercase tracking-wider flex items-center justify-between">
-            <span>Navegar pelas 15 Semanas (7 Dias por Semana):</span>
-            <span className="text-emerald-700 font-mono font-semibold">Semana {selectedWeekNum} de 15</span>
+            <span>Navegar pelas {TOTAL_SEMANAS_ESTUDO} Semanas (7 Dias por Semana):</span>
+            <span className="text-emerald-700 font-mono font-semibold">Semana {selectedWeekNum} de {TOTAL_SEMANAS_ESTUDO}</span>
           </div>
 
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">

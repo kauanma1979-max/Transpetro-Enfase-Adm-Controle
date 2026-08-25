@@ -12,7 +12,14 @@ import { TabMaterialEstudo } from './components/TabMaterialEstudo';
 import { FormulaCalculatorModal } from './components/FormulaCalculatorModal';
 import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { NavigationTabs } from './components/NavigationTabs';
-import { ScheduleDay, CRONOGRAMA_15_SEMANAS, DATA_INICIO_ESTUDOS } from './data/scheduleData';
+import { 
+  ScheduleDay, 
+  CRONOGRAMA_15_SEMANAS, 
+  DATA_INICIO_ESTUDOS,
+  TOTAL_SEMANAS_ESTUDO,
+  TOTAL_DIAS_ESTUDO,
+  TOTAL_HORAS_ESTUDO 
+} from './data/scheduleData';
 import { EDITAL_INFO } from './data/editalData';
 
 export default function App() {
@@ -43,6 +50,25 @@ export default function App() {
     localStorage.setItem('transpetro_completed_days_v2', JSON.stringify(completedDays));
   }, [completedDays]);
 
+  const handleDataRestored = () => {
+    try {
+      const rawDays = localStorage.getItem('transpetro_completed_days_v2');
+      if (rawDays) {
+        setCompletedDays(JSON.parse(rawDays));
+      }
+    } catch (e) { /* ignore */ }
+  };
+
+  // Event listener to auto-sync when backup is imported or modified
+  useEffect(() => {
+    window.addEventListener('transpetro_data_restored', handleDataRestored);
+    window.addEventListener('transpetro_storage_changed', handleDataRestored);
+    return () => {
+      window.removeEventListener('transpetro_data_restored', handleDataRestored);
+      window.removeEventListener('transpetro_storage_changed', handleDataRestored);
+    };
+  }, []);
+
   const handleToggleDay = (dayId: string) => {
     setCompletedDays(prev => 
       prev.includes(dayId) ? prev.filter(id => id !== dayId) : [...prev, dayId]
@@ -61,17 +87,9 @@ export default function App() {
     }
   };
 
-  const handleDataRestored = () => {
-    try {
-      const rawDays = localStorage.getItem('transpetro_completed_days_v2');
-      if (rawDays) {
-        setCompletedDays(JSON.parse(rawDays));
-      }
-    } catch (e) { /* ignore */ }
-  };
-
-  // 15 semanas × 7 dias = 105 dias. 105 dias × 3 horas = 315 horas totais.
-  const totalHours = 315;
+  // Cálculo dinâmico: 14 semanas (98 dias a 3h/dia = 294h totais)
+  const totalDays = TOTAL_DIAS_ESTUDO;
+  const totalHours = TOTAL_HORAS_ESTUDO;
   const completedHours = completedDays.length * 3;
 
   const handleExportReport = () => {
@@ -80,11 +98,11 @@ export default function App() {
     const report = `# RELATÓRIO DE ESTUDOS ESTRATÉGICO — TRANSPETRO 2026.3
 Ênfase 1: Administração e Controle (Nível Médio)
 Banca: Fundação Cesgranrio | Data da Prova: 29/11/2026 (13h00)
-Início do Plano: 20 de Agosto de 2026
+Início do Plano: ${DATA_INICIO_ESTUDOS}
 
 ## 📊 Status do Candidato (Rotina 3h/dia · 7 dias/semana):
 - Horas Cumpridas: ${completedHours}h de ${totalHours}h totais (${progressPct}%)
-- Dias Estudados: ${completedDays.length} de 105 dias planejados
+- Dias Estudados: ${completedDays.length} de ${totalDays} dias planejados (${TOTAL_SEMANAS_ESTUDO} semanas)
 - Formato Diário: 3 horas por dia (2 matérias de 1h30 intercaladas)
 - Metodologia: Pareto Recursivo (100% focado nas 40 questões decisivas de Conhecimentos Específicos)
 
@@ -104,7 +122,7 @@ Gerado em: ${new Date().toLocaleString('pt-BR')}
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `relatorio_estudos_transpetro_315h_${new Date().toISOString().slice(0, 10)}.md`);
+    link.setAttribute('download', `relatorio_estudos_transpetro_${totalHours}h_${new Date().toISOString().slice(0, 10)}.md`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -179,7 +197,7 @@ Gerado em: ${new Date().toLocaleString('pt-BR')}
             <span>Edital nº 03/2026 (Ênfase 1: Administração e Controle)</span>
           </div>
           <div className="text-slate-500 font-medium">
-            3h/dia · 7 dias/sem (21h/sem · 315h Totais) · Início em 20 de Agosto de 2026
+            3h/dia · 7 dias/sem (21h/sem · {totalHours}h Totais · {TOTAL_SEMANAS_ESTUDO} Semanas) · Início em {DATA_INICIO_ESTUDOS}
           </div>
         </div>
       </footer>

@@ -41,6 +41,22 @@ export const TabMaterialEstudo: React.FC<TabMaterialEstudoProps> = ({ onOpenCalc
     localStorage.setItem('transpetro_material_estudo_custom_v1', JSON.stringify(customDataBySecao));
   }, [customDataBySecao]);
 
+  useEffect(() => {
+    const handleRestore = () => {
+      try {
+        const saved = localStorage.getItem('transpetro_material_estudo_custom_v1');
+        if (saved) {
+          setCustomDataBySecao(JSON.parse(saved));
+        } else {
+          setCustomDataBySecao({});
+        }
+      } catch (e) { /* ignore */ }
+    };
+
+    window.addEventListener('transpetro_data_restored', handleRestore);
+    return () => window.removeEventListener('transpetro_data_restored', handleRestore);
+  }, []);
+
   const handleSaveSecaoData = (secaoId: string, updated: { mindMaps?: MindMapItem[]; notes?: string }) => {
     setCustomDataBySecao(prev => ({
       ...prev,

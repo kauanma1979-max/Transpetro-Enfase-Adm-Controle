@@ -142,6 +142,20 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
     localStorage.setItem('transpetro_material_links_v1', JSON.stringify(links));
   }, [links]);
 
+  useEffect(() => {
+    const handleRestore = () => {
+      try {
+        const saved = localStorage.getItem('transpetro_material_links_v1');
+        if (saved) {
+          setLinks(JSON.parse(saved));
+        }
+      } catch (e) { /* ignore */ }
+    };
+
+    window.addEventListener('transpetro_data_restored', handleRestore);
+    return () => window.removeEventListener('transpetro_data_restored', handleRestore);
+  }, []);
+
   // Filter links
   const isGlobalView = showAllModulesFilter || moduloId === 'todos';
 

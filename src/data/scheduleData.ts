@@ -1418,33 +1418,23 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
   const temasBloco2 = [
     {
       num: 6,
-      datas: '21/09 a 27/09/2026',
-      titulo: 'Semana 6: Aprofundamento em Compras Públicas (13.303/16) + Contabilidade Prática',
-      meta: 'Avançar em casos complexos de dispensa, inexigibilidade, matriz de riscos e elaboração de DFC.'
+      titulo: 'Semana 6: Aprofundamento em Compras Públicas (13.303/16 e 14.133/21) + Contabilidade Prática',
+      meta: 'Avançar em casos práticos de dispensa, inexigibilidade, matriz de riscos, aditivos e elaboração de DFC.'
     },
     {
       num: 7,
-      datas: '28/09 a 04/10/2026',
-      titulo: 'Semana 7: Gestão Avançada de Contratos e Penalidades + Matemática Financeira',
-      meta: 'Fixar fiscalização trabalhista de contratos contínuos e cálculo de amortização/descontos.'
+      titulo: 'Semana 7: Gestão Avançada de Contratos, Fiscalização Trabalhista + Matemática Financeira',
+      meta: 'Fixar fiscalização trabalhista de contratos contínuos, retenções e cálculo de amortização/descontos.'
     },
     {
       num: 8,
-      datas: '05/10 a 11/10/2026',
-      titulo: 'Semana 8: Estoques (Ponto de Pedido e Curva ABC) + RH e Modelo CHA',
-      meta: 'Praticar baterias cronometradas de dimensionamento de estoques e gestão de desempenho.'
+      titulo: 'Semana 8: Estoques Avançados (Ponto de Pedido, Curva ABC e LEC) + RH e Modelo CHA',
+      meta: 'Praticar baterias cronometradas de dimensionamento de estoques (PEPS/Média) e gestão de competências.'
     },
     {
       num: 9,
-      datas: '12/10 a 18/10/2026',
-      titulo: 'Semana 9: SGI (Auditoria e Não Conformidades) + Informática (LGPD e Excel Avançado)',
-      meta: 'Gabaritar questões de ISO 9001/14001/45001 e dominar funções PROCX e lógicas no Excel.'
-    },
-    {
-      num: 10,
-      datas: '19/10 a 25/10/2026',
-      titulo: 'Semana 10: Modais de Transporte e Multimodalidade + Port/Mat Básica + Super Simulado 2',
-      meta: 'Fechar o Bloco 2 com 210h acumuladas e simulado completo de 60 questões.'
+      titulo: 'Semana 9: SGI (Auditoria ISO 9001/14001/45001) + Informática (LGPD e Excel Avançado)',
+      meta: 'Gabaritar questões de SGI/ESG e dominar funções PROCX, PROCV, SE, SOMASE e lógicas no Excel.'
     }
   ];
 
@@ -1452,8 +1442,8 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
     semanasExtras.push({
       numero: tema.num,
       blocoId: 2,
-      blocoNome: 'BLOCO 2 — EXPANSÃO E APROFUNDAMENTO (S6 a S10 · 105h)',
-      datas: tema.datas,
+      blocoNome: 'BLOCO 2 — EXPANSÃO E APROFUNDAMENTO (S6 a S9 · 84h)',
+      datas: '',
       titulo: tema.titulo,
       metaSemanal: tema.meta,
       horasTotais: 21,
@@ -1462,7 +1452,7 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
       ].map((diaNome, idx) => ({
         id: `s${tema.num}-d${idx + 1}`,
         diaSemana: diaNome,
-        dataSugerida: `${21 + idx > 30 ? (21 + idx - 30) + '/10' : (21 + idx) + '/09'}`,
+        dataSugerida: '',
         horas: 3,
         focoGeralDoDia: `${tema.titulo.split(':')[1].trim()} · Sessão Diária (${diaNome})`,
         blocoA: {
@@ -1475,8 +1465,8 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
           revisaoMin: 15,
           objetivos: [
             'Resolver 20 questões comentadas com foco em exceções da Cesgranrio',
-            'Fixar prazos e penalidades',
-            'Alimentar caderno de erros'
+            'Fixar prazos, limites de dispensa e penalidades',
+            'Alimentar o Caderno de Erros'
           ],
           dicaCesgranrio: 'Treine a leitura atenta do comando da questão (assinale a alternativa INCORRETA).'
         },
@@ -1500,33 +1490,28 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
 
   const temasBloco3 = [
     {
+      num: 10,
+      titulo: 'Semana 10: Modais de Transporte, Multimodalidade e Indicadores BSC + Super Simulado 2',
+      meta: 'Fechar a etapa intermediária com 210h acumuladas e executar simulado completo de 60 questões.'
+    },
+    {
       num: 11,
-      datas: '26/10 a 01/11/2026',
       titulo: 'Semana 11: Reta Final — Baterias Focadas nas 40 Questões de Específicos',
       meta: 'Treinamento de velocidade e precisão nos tópicos de maior peso (Compras, Contabilidade e RH).'
     },
     {
       num: 12,
-      datas: '02/11 a 08/11/2026',
-      titulo: 'Semana 12: Simulação Completa de Prova (60 Questões) + Ajuste de Lacunas',
-      meta: 'Executar simulado oficial de 4h aos domingos e mapear o percentual em cada bloco.'
+      titulo: 'Semana 12: Simulação Completa de Prova (60 Questões em 4h) + Ajuste de Lacunas',
+      meta: 'Executar simulado oficial de 4h aos domingos e mapear o percentual em cada disciplina.'
     },
     {
       num: 13,
-      datas: '09/11 a 15/11/2026',
-      titulo: 'Semana 13: Repassagem Completa das Leis 13.303 e 14.133 + DFC + Excel',
-      meta: 'Revisão ultra-rápida de todos os artigos mais cobrados e fórmulas.'
+      titulo: 'Semana 13: Repassagem Completa das Leis 13.303 e 14.133 + DFC + Fórmulas',
+      meta: 'Revisão ultra-rápida de todos os artigos mais cobrados, prazos, fórmulas e atalhos de Excel.'
     },
     {
       num: 14,
-      datas: '16/11 a 22/11/2026',
-      titulo: 'Semana 14: Penúltima Semana — Simulado Geral Final + Fixação das Pegadinhas',
-      meta: 'Último grande simulado de 60 questões em condições reais de prova.'
-    },
-    {
-      num: 15,
-      datas: '23/11 a 29/11/2026',
-      titulo: 'Semana 15: Semana da Prova (29/11/2026) — Revisão de Véspera e Estabilização',
+      titulo: 'Semana 14: Semana da Prova (29/11/2026) — Revisão de Véspera e Estabilização',
       meta: 'Revisão exclusiva do Caderno de Erros, descanso cognitivo e chegada no domingo com confiança total.'
     }
   ];
@@ -1535,8 +1520,8 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
     semanasExtras.push({
       numero: tema.num,
       blocoId: 3,
-      blocoNome: 'BLOCO 3 — FECHAMENTO E RETA FINAL (S11 a S15 · 105h)',
-      datas: tema.datas,
+      blocoNome: 'BLOCO 3 — FECHAMENTO E RETA FINAL (S10 a S14 · 105h)',
+      datas: '',
       titulo: tema.titulo,
       metaSemanal: tema.meta,
       horasTotais: 21,
@@ -1545,7 +1530,7 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
       ].map((diaNome, idx) => ({
         id: `s${tema.num}-d${idx + 1}`,
         diaSemana: diaNome,
-        dataSugerida: `${26 + idx > 30 ? (26 + idx - 31) + '/11' : (26 + idx) + '/10'}`,
+        dataSugerida: '',
         horas: 3,
         focoGeralDoDia: `${tema.titulo.split(':')[1].trim()} (${diaNome})`,
         blocoA: {
@@ -1560,7 +1545,7 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
             'Manter ritmo de prova intenso e precisão máxima',
             'Resolver questões Cesgranrio recentes'
           ],
-          dicaCesgranrio: 'Confie na sua preparação. O estudo de 315h cobriu 100% dos pontos de maior recorrência.'
+          dicaCesgranrio: 'Confie na sua preparação. O estudo cobriu 100% dos pontos de maior recorrência.'
         },
         blocoB: {
           disciplina: idx === 6 ? 'Caderno de Erros' : 'Revisão & Caderno de Erros',
@@ -1583,25 +1568,44 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
   return semanasExtras;
 };
 
-// Concatena as semanas restantes gerando todas as 15 semanas
+// Concatena as semanas restantes gerando todas as 14 semanas até a prova
 CRONOGRAMA_15_SEMANAS.push(...gerarSemanasRestantes());
 
-export const DATA_INICIO_ESTUDOS = '20/08/2026';
+// Data de início configurada dinamicamente para HOJE
+const hoje = new Date();
+hoje.setHours(0, 0, 0, 0);
+
+const diaHoje = String(hoje.getDate()).padStart(2, '0');
+const mesHoje = String(hoje.getMonth() + 1).padStart(2, '0');
+const anoHoje = hoje.getFullYear();
+
+export const DATA_INICIO_ESTUDOS = `${diaHoje}/${mesHoje}/${anoHoje}`;
 export const DATA_PROVA_OFICIAL = '29/11/2026';
 
-const NOMES_DIAS_SEMANA = [
-  'Quinta-feira',
-  'Sexta-feira',
-  'Sábado',
+export const TOTAL_SEMANAS_ESTUDO = CRONOGRAMA_15_SEMANAS.length; // 14 semanas
+export const TOTAL_DIAS_ESTUDO = CRONOGRAMA_15_SEMANAS.reduce((acc, sem) => acc + sem.dias.length, 0); // 98 dias
+export const TOTAL_HORAS_ESTUDO = TOTAL_DIAS_ESTUDO * 3; // 294 horas (3h/dia)
+
+const NOMES_DIAS_SEMANA_MAP = [
   'Domingo',
   'Segunda-feira',
   'Terça-feira',
-  'Quarta-feira'
+  'Quarta-feira',
+  'Quinta-feira',
+  'Sexta-feira',
+  'Sábado'
 ];
 
-// Normaliza todas as semanas e dias para iniciar rigorosamente em 20 de Agosto de 2026 (Quinta-feira)
-(function normalizarDatasPara20Agosto() {
-  const dataBase = new Date(2026, 7, 20); // 20 de Agosto de 2026
+// Normaliza todas as semanas e dias para iniciar rigorosamente na data de HOJE
+(function normalizarDatasParaHoje() {
+  const dataBase = new Date();
+  dataBase.setHours(0, 0, 0, 0);
+
+  const formataDiaMes = (d: Date) => {
+    const dia = String(d.getDate()).padStart(2, '0');
+    const mes = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dia}/${mes}`;
+  };
 
   CRONOGRAMA_15_SEMANAS.forEach((semana, sIdx) => {
     const inicioSemana = new Date(dataBase);
@@ -1610,20 +1614,15 @@ const NOMES_DIAS_SEMANA = [
     const fimSemana = new Date(dataBase);
     fimSemana.setDate(dataBase.getDate() + sIdx * 7 + (semana.dias.length - 1));
 
-    const formataDiaMes = (d: Date) => {
-      const dia = String(d.getDate()).padStart(2, '0');
-      const mes = String(d.getMonth() + 1).padStart(2, '0');
-      return `${dia}/${mes}`;
-    };
-
-    semana.datas = `${formataDiaMes(inicioSemana)} a ${formataDiaMes(fimSemana)}/2026`;
+    semana.datas = `${formataDiaMes(inicioSemana)} a ${formataDiaMes(fimSemana)}/${fimSemana.getFullYear()}`;
 
     semana.dias.forEach((dia, dIdx) => {
       const dataDia = new Date(dataBase);
       dataDia.setDate(dataBase.getDate() + (sIdx * 7) + dIdx);
 
       dia.dataSugerida = formataDiaMes(dataDia);
-      dia.diaSemana = NOMES_DIAS_SEMANA[dIdx % 7];
+      // Atribui o dia da semana real de acordo com a data do calendário
+      dia.diaSemana = NOMES_DIAS_SEMANA_MAP[dataDia.getDay()];
     });
   });
 })();

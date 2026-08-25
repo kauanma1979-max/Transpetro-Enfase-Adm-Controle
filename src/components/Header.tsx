@@ -8,6 +8,7 @@ import {
   Calendar,
   Sparkles
 } from 'lucide-react';
+import { DATA_INICIO_ESTUDOS } from '../data/scheduleData';
 
 interface HeaderProps {
   completedHours: number;
@@ -58,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
   const progressPercentage = Math.min(100, Math.round((completedHours / totalHours) * 100));
 
   return (
-    <header className="bg-slate-900/95 backdrop-blur-md text-white border-b border-slate-800/80 sticky top-0 z-40 shadow-sm transition-all">
+    <header className="bg-slate-900 text-white border-b border-slate-800 relative z-20 shadow-sm transition-all">
       {/* Top Banner with Key Highlights */}
       <div className="bg-gradient-to-r from-emerald-950/90 via-slate-900 to-slate-950 px-4 py-2 border-b border-emerald-500/20 text-xs">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
@@ -73,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-slate-500 hidden md:inline">·</span>
             <span className="inline-flex items-center gap-1 text-[11px] text-amber-300 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
               <Calendar className="w-3 h-3 text-amber-400" />
-              Início: 20 de Agosto de 2026 (~100 Dias)
+              Início: Hoje ({DATA_INICIO_ESTUDOS}) · ~{timeLeft.days} Dias até a Prova
             </span>
           </div>
 
@@ -109,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
                   </span>
                 </h1>
                 <p className="text-xs text-slate-400 leading-none mt-1">
-                  Transpetro Nível Médio · 315h Totais · Início em 20/08/2026
+                  Transpetro Nível Médio · {totalHours}h Totais · Início em {DATA_INICIO_ESTUDOS}
                 </p>
               </div>
             </div>

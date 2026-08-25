@@ -255,7 +255,7 @@ export const DailySessionModal: React.FC<DailySessionModalProps> = ({
             <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
             <h4 className="text-lg font-bold text-white">Sessão Diária de 3 Horas Concluída!</h4>
             <p className="text-xs text-slate-300 max-w-md mx-auto">
-              Excelente trabalho! O dia foi registrado no seu cronograma de 315 horas (21h/semana · 7 dias).
+              Excelente trabalho! O dia foi registrado no seu cronograma de estudos (3h/dia · 21h/semana).
             </p>
           </div>
         )}

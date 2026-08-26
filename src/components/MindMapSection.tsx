@@ -1,20 +1,21 @@
 import React, { useState, useRef } from 'react';
 import { 
-  Image as ImageIcon, 
   FileText, 
   Plus, 
   Trash2, 
   ExternalLink, 
   ZoomIn, 
   X, 
-  Upload, 
   Edit3, 
   Save, 
   Check, 
   FileUp,
-  Sparkles,
   Layers,
-  BookMarked
+  BookMarked,
+  AlertCircle,
+  Link as LinkIcon,
+  Upload,
+  Eye
 } from 'lucide-react';
 
 export interface MindMapItem {
@@ -22,7 +23,7 @@ export interface MindMapItem {
   secaoId: string;
   titulo: string;
   tipo: 'image' | 'pdf';
-  url: string; // Base64 or external url
+  url: string; // Base64 data URL or external URL
   dataAdicionado: string;
   tamanhoKb?: number;
 }
@@ -37,6 +38,65 @@ interface MindMapSectionProps {
   onSaveData: (secaoId: string, updated: { mindMaps?: MindMapItem[]; notes?: string }) => void;
 }
 
+// Helper to compress image if larger than 1MB to prevent localStorage quota exhaustion
+async function processAndCompressImage(file: File): Promise<{ base64: string; sizeKb: number }> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      if (!result) {
+        reject(new Error('Erro ao ler arquivo.'));
+        return;
+      }
+
+      // If file is small (< 600KB), return as-is
+      if (file.size < 600 * 1024) {
+        resolve({ base64: result, sizeKb: Math.round(file.size / 1024) });
+        return;
+      }
+
+      // Otherwise compress via HTML5 canvas
+      const img = new Image();
+      img.onload = () => {
+        const maxWidth = 1600;
+        const maxHeight = 1600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth || height > maxHeight) {
+          if (width > height) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve({ base64: result, sizeKb: Math.round(file.size / 1024) });
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+        const compressedSizeKb = Math.round((compressedBase64.length * 3) / 4 / 1024);
+        resolve({ base64: compressedBase64, sizeKb: compressedSizeKb });
+      };
+      img.onerror = () => {
+        resolve({ base64: result, sizeKb: Math.round(file.size / 1024) });
+      };
+      img.src = result;
+    };
+    reader.onerror = () => reject(new Error('Erro ao carregar arquivo'));
+    reader.readAsDataURL(file);
+  });
+}
+
 export const MindMapSection: React.FC<MindMapSectionProps> = ({
   secaoId,
   secaoTitulo,
@@ -46,14 +106,19 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
   const [notes, setNotes] = useState<string>(customData.notes || '');
   const [isEditingNotes, setIsEditingNotes] = useState<boolean>(false);
   const [notesSavedToast, setNotesSavedToast] = useState<boolean>(false);
+  const [actionToast, setActionToast] = useState<string | null>(null);
 
-  // Modal for adding mind map
-  const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  // Modal for adding / editing mind map
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [editingMapId, setEditingMapId] = useState<string | null>(null);
   const [addMode, setAddMode] = useState<'upload' | 'url'>('upload');
   const [mapTitle, setMapTitle] = useState<string>('');
   const [mapUrl, setMapUrl] = useState<string>('');
   const [mapType, setMapType] = useState<'image' | 'pdf'>('image');
   const [selectedFile, setSelectedFile] = useState<{ base64: string; type: 'image' | 'pdf'; sizeKb: number; name: string } | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [isProcessingFile, setIsProcessingFile] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
 
   // Lightbox modal for viewing image/PDF
   const [viewingMap, setViewingMap] = useState<MindMapItem | null>(null);
@@ -62,6 +127,11 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
 
   const mindMaps = customData.mindMaps || [];
 
+  const triggerToast = (msg: string) => {
+    setActionToast(msg);
+    setTimeout(() => setActionToast(null), 3000);
+  };
+
   const handleSaveNotes = () => {
     onSaveData(secaoId, { ...customData, notes });
     setIsEditingNotes(false);
@@ -69,44 +139,142 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
     setTimeout(() => setNotesSavedToast(false), 2500);
   };
 
-  const handleFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Open modal in ADD mode
+  const handleOpenAddModal = () => {
+    setEditingMapId(null);
+    setMapTitle('');
+    setMapUrl('');
+    setMapType('image');
+    setSelectedFile(null);
+    setModalError(null);
+    setAddMode('upload');
+    setShowModal(true);
+  };
 
-    const isPdf = file.type === 'application/pdf' || file.name.endsWith('.pdf');
-    const isImg = file.type.startsWith('image/');
+  // Open modal in EDIT mode
+  const handleOpenEditModal = (map: MindMapItem) => {
+    setEditingMapId(map.id);
+    setMapTitle(map.titulo);
+    setMapType(map.tipo);
+    setModalError(null);
+
+    if (map.url.startsWith('data:')) {
+      setAddMode('upload');
+      setSelectedFile({
+        base64: map.url,
+        type: map.tipo,
+        sizeKb: map.tamanhoKb || Math.round(map.url.length / 1024),
+        name: map.titulo
+      });
+      setMapUrl('');
+    } else {
+      setAddMode('url');
+      setMapUrl(map.url);
+      setSelectedFile(null);
+    }
+
+    setShowModal(true);
+  };
+
+  const handleProcessFile = async (file: File) => {
+    setModalError(null);
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isImg = file.type.startsWith('image/') || /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name);
 
     if (!isPdf && !isImg) {
-      alert('Por favor selecione um arquivo de imagem (PNG, JPG, WebP) ou PDF.');
+      setModalError('Por favor, selecione um arquivo de imagem (PNG, JPG, WebP) ou documento PDF.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      setSelectedFile({
-        base64,
-        type: isPdf ? 'pdf' : 'image',
-        sizeKb: Math.round(file.size / 1024),
-        name: file.name.replace(/\.[^/.]+$/, '')
-      });
-      if (!mapTitle) {
-        setMapTitle(file.name.replace(/\.[^/.]+$/, ''));
+    if (file.size > 15 * 1024 * 1024) {
+      setModalError('O arquivo selecionado é muito grande. O limite máximo recomendado é 15MB.');
+      return;
+    }
+
+    setIsProcessingFile(true);
+
+    try {
+      if (isPdf) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const base64 = event.target?.result as string;
+          setSelectedFile({
+            base64,
+            type: 'pdf',
+            sizeKb: Math.round(file.size / 1024),
+            name: file.name.replace(/\.[^/.]+$/, '')
+          });
+          setMapType('pdf');
+          if (!mapTitle.trim()) {
+            setMapTitle(file.name.replace(/\.[^/.]+$/, ''));
+          }
+          setIsProcessingFile(false);
+        };
+        reader.onerror = () => {
+          setModalError('Não foi possível ler o arquivo PDF.');
+          setIsProcessingFile(false);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        const { base64, sizeKb } = await processAndCompressImage(file);
+        setSelectedFile({
+          base64,
+          type: 'image',
+          sizeKb,
+          name: file.name.replace(/\.[^/.]+$/, '')
+        });
+        setMapType('image');
+        if (!mapTitle.trim()) {
+          setMapTitle(file.name.replace(/\.[^/.]+$/, ''));
+        }
+        setIsProcessingFile(false);
       }
-      setMapType(isPdf ? 'pdf' : 'image');
-    };
-    reader.readAsDataURL(file);
+    } catch (err: any) {
+      setModalError(`Erro ao carregar arquivo: ${err?.message || 'Arquivo inválido'}`);
+      setIsProcessingFile(false);
+    }
   };
 
-  const handleAddMindMap = (e: React.FormEvent) => {
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleProcessFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      handleProcessFile(file);
+    }
+  };
+
+  const handleSaveMindMap = (e: React.FormEvent) => {
+    e.preventDefault();
+    setModalError(null);
+
     let finalUrl = '';
     let finalType: 'image' | 'pdf' = mapType;
     let sizeKb: number | undefined;
 
     if (addMode === 'upload') {
       if (!selectedFile) {
-        alert('Selecione um arquivo para enviar.');
+        setModalError('Por favor, clique no quadro acima para escolher uma imagem ou arquivo PDF.');
         return;
       }
       finalUrl = selectedFile.base64;
@@ -114,42 +282,79 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
       sizeKb = selectedFile.sizeKb;
     } else {
       if (!mapUrl.trim()) {
-        alert('Insira a URL do mapa mental.');
+        setModalError('Por favor, insira o link ou URL do mapa mental.');
         return;
       }
       finalUrl = mapUrl.trim();
-      finalType = finalUrl.toLowerCase().includes('.pdf') ? 'pdf' : 'image';
+      if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+        finalUrl = `https://${finalUrl}`;
+      }
+      finalType = finalUrl.toLowerCase().includes('.pdf') ? 'pdf' : mapType;
     }
 
-    const newItem: MindMapItem = {
-      id: `map-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      secaoId,
-      titulo: mapTitle.trim() || (finalType === 'pdf' ? 'Mapa Mental (PDF)' : 'Mapa Mental (Imagem)'),
-      tipo: finalType,
-      url: finalUrl,
-      dataAdicionado: new Date().toLocaleDateString('pt-BR'),
-      tamanhoKb: sizeKb
-    };
+    const titleToSave = mapTitle.trim() || (finalType === 'pdf' ? `Mapa Mental PDF (${secaoTitulo})` : `Esquema Visual (${secaoTitulo})`);
 
-    const updatedMaps = [...mindMaps, newItem];
-    onSaveData(secaoId, { ...customData, mindMaps: updatedMaps });
+    try {
+      if (editingMapId) {
+        // Edit existing item
+        const updatedMaps = mindMaps.map(m => {
+          if (m.id === editingMapId) {
+            return {
+              ...m,
+              titulo: titleToSave,
+              tipo: finalType,
+              url: finalUrl,
+              tamanhoKb: sizeKb || m.tamanhoKb
+            };
+          }
+          return m;
+        });
+        onSaveData(secaoId, { ...customData, mindMaps: updatedMaps });
+        triggerToast('Mapa mental atualizado com sucesso!');
+      } else {
+        // Add new item
+        const newItem: MindMapItem = {
+          id: `map-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+          secaoId,
+          titulo: titleToSave,
+          tipo: finalType,
+          url: finalUrl,
+          dataAdicionado: new Date().toLocaleDateString('pt-BR'),
+          tamanhoKb: sizeKb
+        };
+        const updatedMaps = [newItem, ...mindMaps];
+        onSaveData(secaoId, { ...customData, mindMaps: updatedMaps });
+        triggerToast('Novo mapa mental inserido com sucesso!');
+      }
 
-    // Reset Form
-    setShowAddModal(false);
-    setMapTitle('');
-    setMapUrl('');
-    setSelectedFile(null);
+      // Reset and close
+      setShowModal(false);
+      setEditingMapId(null);
+      setMapTitle('');
+      setMapUrl('');
+      setSelectedFile(null);
+      setModalError(null);
+    } catch (err: any) {
+      setModalError('Não foi possível salvar os dados. Verifique se o arquivo não excede a memória do navegador.');
+    }
   };
 
-  const handleDeleteMindMap = (mapId: string) => {
-    if (window.confirm('Deseja realmente remover este mapa mental?')) {
-      const updatedMaps = mindMaps.filter(m => m.id !== mapId);
-      onSaveData(secaoId, { ...customData, mindMaps: updatedMaps });
-    }
+  const handleDeleteMindMap = (mapId: string, mapTitleStr: string) => {
+    const updatedMaps = mindMaps.filter(m => m.id !== mapId);
+    onSaveData(secaoId, { ...customData, mindMaps: updatedMaps });
+    triggerToast(`"${mapTitleStr}" foi excluído com sucesso.`);
   };
 
   return (
     <div className="space-y-4 pt-2 border-t border-slate-100">
+      {/* Toast Feedback */}
+      {actionToast && (
+        <div className="bg-emerald-600 text-white text-xs px-3.5 py-2 rounded-xl shadow-md flex items-center gap-2 animate-fadeIn font-medium">
+          <Check className="w-4 h-4 shrink-0" />
+          <span>{actionToast}</span>
+        </div>
+      )}
+
       {/* Header of Mind Maps & Notes */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div className="flex items-center gap-2">
@@ -165,11 +370,11 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
         </div>
 
         <button
-          onClick={() => setShowAddModal(true)}
-          className="px-3 py-1.5 rounded-lg bg-purple-50 hover:bg-purple-600 text-purple-700 hover:text-white font-bold text-xs border border-purple-200 transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto shadow-xs"
+          onClick={handleOpenAddModal}
+          className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs hover:shadow-md transition cursor-pointer flex items-center gap-1.5 self-start sm:self-auto"
         >
-          <Plus className="w-3.5 h-3.5" />
-          <span>+ Inserir Mapa Mental (Imagem / PDF)</span>
+          <Plus className="w-4 h-4" />
+          <span>Inserir Mapa Mental (Imagem / PDF)</span>
         </button>
       </div>
 
@@ -195,7 +400,7 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
                       (e.target as HTMLElement).style.display = 'none';
                     }}
                   />
-                  <div className="absolute inset-0 bg-slate-950/20 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white gap-1.5 font-bold text-xs backdrop-blur-2xs">
+                  <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white gap-1.5 font-bold text-xs backdrop-blur-2xs">
                     <ZoomIn className="w-4 h-4" />
                     <span>Ampliar Imagem</span>
                   </div>
@@ -215,7 +420,7 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
                 </div>
               )}
 
-              {/* Card Footer Info & Actions */}
+              {/* Card Footer Info & Actions (Zoom, Edit, Delete) */}
               <div className="p-3 bg-white border-t border-slate-100 flex items-center justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold text-slate-900 truncate" title={map.titulo}>
@@ -230,13 +435,20 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
                 <div className="flex items-center gap-1 shrink-0">
                   <button
                     onClick={() => setViewingMap(map)}
-                    title="Visualizar em tamanho grande"
+                    title="Visualizar Mapa Mental"
                     className="p-1.5 rounded-lg text-slate-500 hover:text-purple-700 hover:bg-purple-50 transition cursor-pointer"
                   >
-                    <ZoomIn className="w-3.5 h-3.5" />
+                    <Eye className="w-3.5 h-3.5" />
                   </button>
                   <button
-                    onClick={() => handleDeleteMindMap(map.id)}
+                    onClick={() => handleOpenEditModal(map)}
+                    title="Editar Mapa Mental"
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition cursor-pointer"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteMindMap(map.id, map.titulo)}
                     title="Excluir Mapa Mental"
                     className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                   >
@@ -286,6 +498,7 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
             />
             <div className="flex items-center justify-end gap-2">
               <button
+                type="button"
                 onClick={() => {
                   setNotes(customData.notes || '');
                   setIsEditingNotes(false);
@@ -295,6 +508,7 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleSaveNotes}
                 className="px-4 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs cursor-pointer transition"
               >
@@ -314,35 +528,53 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
         )}
       </div>
 
-      {/* Modal: Inserir Mapa Mental */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
+      {/* Modal: Inserir / Editar Mapa Mental */}
+      {showModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn"
+          onClick={() => setShowModal(false)}
+        >
           <div 
-            className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+            className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-scaleUp max-h-[92vh] flex flex-col"
             onClick={e => e.stopPropagation()}
           >
-            <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Layers className="w-5 h-5 text-purple-400" />
-                <h4 className="font-bold text-sm">Inserir Mapa Mental em {secaoTitulo}</h4>
+            {/* Modal Header */}
+            <div className="bg-slate-900 text-white p-4 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2 min-w-0 pr-2">
+                <Layers className="w-5 h-5 text-purple-400 shrink-0" />
+                <h4 className="font-bold text-sm truncate">
+                  {editingMapId ? 'Editar Mapa Mental' : `Inserir Mapa Mental em ${secaoTitulo}`}
+                </h4>
               </div>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white">
+              <button 
+                type="button"
+                onClick={() => setShowModal(false)} 
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleAddMindMap} className="p-5 space-y-4">
+            {/* Modal Form */}
+            <form onSubmit={handleSaveMindMap} className="p-5 space-y-4 overflow-y-auto">
+              {/* Error Banner */}
+              {modalError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-start gap-2 animate-fadeIn">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed font-medium">{modalError}</div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Título / Nome do Mapa Mental:
                 </label>
                 <input
                   type="text"
-                  required
                   placeholder="Ex: Esquema Resumido Lei 13.303, Fluxograma PDCA, Tríade CID..."
                   value={mapTitle}
                   onChange={(e) => setMapTitle(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 focus:outline-hidden focus:border-purple-600"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 focus:outline-hidden focus:border-purple-600 focus:bg-white"
                 />
               </div>
 
@@ -350,21 +582,29 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
               <div className="flex border-b border-slate-200">
                 <button
                   type="button"
-                  onClick={() => setAddMode('upload')}
-                  className={`flex-1 py-2 text-xs font-bold border-b-2 transition ${
-                    addMode === 'upload' ? 'border-purple-600 text-purple-700' : 'border-transparent text-slate-500'
+                  onClick={() => {
+                    setAddMode('upload');
+                    setModalError(null);
+                  }}
+                  className={`flex-1 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    addMode === 'upload' ? 'border-purple-600 text-purple-700 bg-purple-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  📁 Enviar Arquivo (Imagem / PDF)
+                  <FileUp className="w-4 h-4" />
+                  <span>Enviar Arquivo (Imagem / PDF)</span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => setAddMode('url')}
-                  className={`flex-1 py-2 text-xs font-bold border-b-2 transition ${
-                    addMode === 'url' ? 'border-purple-600 text-purple-700' : 'border-transparent text-slate-500'
+                  onClick={() => {
+                    setAddMode('url');
+                    setModalError(null);
+                  }}
+                  className={`flex-1 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                    addMode === 'url' ? 'border-purple-600 text-purple-700 bg-purple-50/50' : 'border-transparent text-slate-500 hover:text-slate-800'
                   }`}
                 >
-                  🔗 Inserir Link / URL
+                  <LinkIcon className="w-4 h-4" />
+                  <span>Inserir Link / URL</span>
                 </button>
               </div>
 
@@ -373,26 +613,46 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*,.pdf"
-                    onChange={handleFileSelected}
+                    accept="image/png,image/jpeg,image/jpg,image/webp,image/gif,application/pdf"
+                    onChange={handleFileInputChange}
                     className="hidden"
                   />
                   <div
                     onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-purple-200 hover:border-purple-400 bg-purple-50/40 rounded-xl p-6 text-center cursor-pointer transition space-y-2"
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition space-y-2 ${
+                      isDragging 
+                        ? 'border-purple-500 bg-purple-100/70 scale-[1.01]' 
+                        : 'border-purple-200 hover:border-purple-400 bg-purple-50/40 hover:bg-purple-50/70'
+                    }`}
                   >
-                    <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-700 mx-auto flex items-center justify-center">
-                      <FileUp className="w-5 h-5" />
-                    </div>
-                    {selectedFile ? (
-                      <div>
-                        <p className="text-xs font-bold text-purple-900">{selectedFile.name}</p>
-                        <p className="text-[11px] text-slate-500">{selectedFile.type === 'pdf' ? 'Arquivo PDF' : 'Imagem'} · {selectedFile.sizeKb} KB</p>
+                    {isProcessingFile ? (
+                      <div className="py-4 space-y-2">
+                        <div className="w-8 h-8 border-3 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                        <p className="text-xs font-bold text-purple-800">Processando arquivo...</p>
+                      </div>
+                    ) : selectedFile ? (
+                      <div className="space-y-2">
+                        <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-700 mx-auto flex items-center justify-center">
+                          {selectedFile.type === 'pdf' ? <FileText className="w-5 h-5" /> : <FileUp className="w-5 h-5" />}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-purple-900 truncate max-w-xs mx-auto">{selectedFile.name}</p>
+                          <p className="text-[11px] text-slate-500">{selectedFile.type === 'pdf' ? 'Arquivo PDF' : 'Imagem'} · {selectedFile.sizeKb} KB</p>
+                        </div>
+                        <span className="inline-block text-[11px] font-semibold text-purple-700 bg-purple-100 px-3 py-1 rounded-lg">
+                          Clique ou arraste para substituir arquivo
+                        </span>
                       </div>
                     ) : (
                       <div>
-                        <p className="text-xs font-bold text-slate-700">Clique para selecionar imagem ou PDF</p>
-                        <p className="text-[10px] text-slate-400">Suporta PNG, JPG, JPEG, WebP e PDF (até 5MB)</p>
+                        <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-700 mx-auto flex items-center justify-center mb-2">
+                          <Upload className="w-5 h-5" />
+                        </div>
+                        <p className="text-xs font-bold text-slate-800">Clique para selecionar imagem ou PDF</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">Suporta PNG, JPG, JPEG, WebP e PDF (ou arraste aqui)</p>
                       </div>
                     )}
                   </div>
@@ -404,11 +664,11 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
                       Link / URL Direta do Arquivo ou Imagem:
                     </label>
                     <input
-                      type="url"
+                      type="text"
                       placeholder="https://exemplo.com/mapa-mental.png ou https://drive.google.com/..."
                       value={mapUrl}
                       onChange={(e) => setMapUrl(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 focus:outline-hidden focus:border-purple-600"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 focus:outline-hidden focus:border-purple-600 focus:bg-white font-mono"
                     />
                   </div>
                   <div>
@@ -418,7 +678,7 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
                     <select
                       value={mapType}
                       onChange={(e) => setMapType(e.target.value as any)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 font-medium"
                     >
                       <option value="image">🖼️ Imagem (PNG, JPG, WebP)</option>
                       <option value="pdf">📄 Documento PDF</option>
@@ -427,19 +687,22 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
                 </div>
               )}
 
+              {/* Modal Buttons (Cancelar & Salvar) */}
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs transition"
+                  disabled={isProcessingFile}
+                  className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-xs hover:shadow-md transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                 >
-                  Salvar Mapa Mental
+                  <Save className="w-4 h-4" />
+                  <span>{editingMapId ? 'Salvar Alterações' : 'Salvar Mapa Mental'}</span>
                 </button>
               </div>
             </form>
@@ -450,7 +713,7 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
       {/* Lightbox Modal: Visualizador de Imagem / PDF */}
       {viewingMap && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-sm animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-sm animate-fadeIn"
           onClick={() => setViewingMap(null)}
         >
           <div 
@@ -458,11 +721,11 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
             onClick={e => e.stopPropagation()}
           >
             <div className="bg-slate-900 text-white p-4 flex items-center justify-between border-b border-slate-800">
-              <div className="flex items-center gap-2 min-w-0">
+              <div className="flex items-center gap-2 min-w-0 pr-2">
                 <Layers className="w-5 h-5 text-purple-400 shrink-0" />
                 <h4 className="font-bold text-sm truncate">{viewingMap.titulo}</h4>
-                <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full">
-                  {viewingMap.tipo.toUpperCase()}
+                <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded-full uppercase">
+                  {viewingMap.tipo}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -478,8 +741,9 @@ export const MindMapSection: React.FC<MindMapSectionProps> = ({
                   </a>
                 )}
                 <button 
+                  type="button"
                   onClick={() => setViewingMap(null)} 
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>

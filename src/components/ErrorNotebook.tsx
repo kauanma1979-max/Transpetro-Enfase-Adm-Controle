@@ -186,11 +186,9 @@ export const ErrorNotebook: React.FC = () => {
   };
 
   const handleDeleteError = (id: string) => {
-    if (window.confirm('Deseja excluir este registro de erro?')) {
-      setErrors(errors.filter(err => err.id !== id));
-      setSaveToast('Registro excluído do Caderno.');
-      setTimeout(() => setSaveToast(null), 3000);
-    }
+    setErrors(prev => prev.filter(err => err.id !== id));
+    setSaveToast('Registro de erro removido com sucesso!');
+    setTimeout(() => setSaveToast(null), 3000);
   };
 
   const handleExportCSV = () => {

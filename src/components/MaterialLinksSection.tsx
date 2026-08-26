@@ -13,10 +13,12 @@ import {
   Copy, 
   X, 
   HardDrive,
-  Sparkles,
   HelpCircle,
   Bookmark,
-  FolderOpen
+  FolderOpen,
+  AlertCircle,
+  Save,
+  Check
 } from 'lucide-react';
 
 export interface MaterialLinkItem {
@@ -144,13 +146,38 @@ const INITIAL_DEFAULT_LINKS: MaterialLinkItem[] = [
   {
     id: 'link-init-6',
     moduloId: 'informatica-lgpd',
-    titulo: 'LGPD Lei nº 13.709/2018 — Planalto Oficial Compilado',
+    titulo: 'Lei Geral de Proteção de Dados (LGPD nº 13.709/2018) — Planalto Oficial',
     url: 'https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm',
     tipo: 'web',
     descricao: 'Legislação de proteção de dados pessoais, princípios CID e atuação da ANPD.',
     dataAdicionado: '20/08/2026'
   }
 ];
+
+// Helper to strictly deduplicate links by normalized URL or normalized Title
+function sanitizeAndDeduplicate(list: MaterialLinkItem[]): MaterialLinkItem[] {
+  const seenUrls = new Set<string>();
+  const seenTitles = new Set<string>();
+  const result: MaterialLinkItem[] = [];
+
+  for (const item of list) {
+    if (!item || !item.titulo || !item.url) continue;
+
+    const normUrl = item.url.trim().toLowerCase().replace(/\/+$/, '');
+    const normTitle = item.titulo.trim().toLowerCase();
+
+    // Check if we've already seen this URL or this exact title
+    if (seenUrls.has(normUrl) || seenTitles.has(normTitle)) {
+      continue;
+    }
+
+    seenUrls.add(normUrl);
+    seenTitles.add(normTitle);
+    result.push(item);
+  }
+
+  return result;
+}
 
 interface MaterialLinksSectionProps {
   moduloId?: string;
@@ -179,20 +206,18 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const existingIds = new Set(parsed.map((p: any) => p.id || p.titulo));
-          const missingDefaults = INITIAL_DEFAULT_LINKS.filter(d => !existingIds.has(d.id) && !existingIds.has(d.titulo));
-          return [...parsed, ...missingDefaults];
+          return sanitizeAndDeduplicate(parsed);
         }
       } catch (e) {
-        return INITIAL_DEFAULT_LINKS;
+        return sanitizeAndDeduplicate(INITIAL_DEFAULT_LINKS);
       }
     }
-    return INITIAL_DEFAULT_LINKS;
+    return sanitizeAndDeduplicate(INITIAL_DEFAULT_LINKS);
   });
 
   const [filterModulo, setFilterModulo] = useState<string>('todos');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [showAddModal, setShowAddModal] = useState<boolean>(false);
+  const [showModal, setShowModal] = useState<boolean>(false);
   const [editingItem, setEditingItem] = useState<MaterialLinkItem | null>(null);
 
   // Form State
@@ -201,11 +226,19 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
   const [formTipo, setFormTipo] = useState<MaterialLinkItem['tipo']>('pdf');
   const [formModuloId, setFormModuloId] = useState<string>(moduloId !== 'todos' ? moduloId : 'proc-adm');
   const [formDescricao, setFormDescricao] = useState<string>('');
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [actionToast, setActionToast] = useState<string | null>(null);
+
+  const triggerToast = (msg: string) => {
+    setActionToast(msg);
+    setTimeout(() => setActionToast(null), 3000);
+  };
 
   useEffect(() => {
-    localStorage.setItem('transpetro_material_links_v1', JSON.stringify(links));
+    const deduplicated = sanitizeAndDeduplicate(links);
+    localStorage.setItem('transpetro_material_links_v1', JSON.stringify(deduplicated));
     try {
       window.dispatchEvent(new CustomEvent('transpetro_storage_changed', { detail: { key: 'transpetro_material_links_v1' } }));
     } catch (e) { /* ignore */ }
@@ -216,7 +249,7 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
       try {
         const saved = localStorage.getItem('transpetro_material_links_v1');
         if (saved) {
-          setLinks(JSON.parse(saved));
+          setLinks(sanitizeAndDeduplicate(JSON.parse(saved)));
         }
       } catch (e) { /* ignore */ }
     };
@@ -264,7 +297,8 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
     setFormTipo('pdf');
     setFormModuloId(moduloId !== 'todos' ? moduloId : (filterModulo !== 'todos' ? filterModulo : 'proc-adm'));
     setFormDescricao('');
-    setShowAddModal(true);
+    setFormError(null);
+    setShowModal(true);
   };
 
   const handleOpenEdit = (item: MaterialLinkItem) => {
@@ -274,13 +308,21 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
     setFormTipo(item.tipo);
     setFormModuloId(item.moduloId);
     setFormDescricao(item.descricao || '');
-    setShowAddModal(true);
+    setFormError(null);
+    setShowModal(true);
   };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formTitulo.trim() || !formUrl.trim()) {
-      alert('Preencha o nome e o link do material.');
+    setFormError(null);
+
+    if (!formTitulo.trim()) {
+      setFormError('Por favor, informe o título ou nome do material.');
+      return;
+    }
+
+    if (!formUrl.trim()) {
+      setFormError('Por favor, insira o link ou URL do material.');
       return;
     }
 
@@ -290,6 +332,7 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
     }
 
     if (editingItem) {
+      // Edit mode
       setLinks(prev => prev.map(item => 
         item.id === editingItem.id
           ? {
@@ -302,9 +345,11 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
             }
           : item
       ));
+      triggerToast('Card de material atualizado com sucesso!');
     } else {
+      // Add mode
       const newItem: MaterialLinkItem = {
-        id: `link-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        id: `link-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
         moduloId: formModuloId,
         secaoId,
         titulo: formTitulo.trim(),
@@ -314,21 +359,27 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
         dataAdicionado: new Date().toLocaleDateString('pt-BR')
       };
       setLinks(prev => [newItem, ...prev]);
+      triggerToast('Novo card de material adicionado com sucesso!');
     }
 
-    setShowAddModal(false);
+    setShowModal(false);
+    setEditingItem(null);
   };
 
-  const handleDelete = (id: string) => {
-    if (window.confirm('Deseja realmente excluir este card de link?')) {
-      setLinks(prev => prev.filter(l => l.id !== id));
-    }
+  const handleDelete = (id: string, tituloStr: string) => {
+    setLinks(prev => prev.filter(l => l.id !== id));
+    triggerToast(`"${tituloStr}" foi removido com sucesso.`);
   };
 
   const handleCopyLink = (item: MaterialLinkItem) => {
-    navigator.clipboard.writeText(item.url);
-    setCopiedId(item.id);
-    setTimeout(() => setCopiedId(null), 2000);
+    try {
+      navigator.clipboard.writeText(item.url);
+      setCopiedId(item.id);
+      setTimeout(() => setCopiedId(null), 2000);
+      triggerToast('Link copiado para a Área de Transferência!');
+    } catch (e) {
+      triggerToast('Link selecionado para cópia.');
+    }
   };
 
   const getTipoBadge = (tipo: MaterialLinkItem['tipo']) => {
@@ -367,6 +418,14 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
 
   return (
     <div className="space-y-5">
+      {/* Toast Feedback */}
+      {actionToast && (
+        <div className="bg-blue-600 text-white text-xs px-3.5 py-2 rounded-xl shadow-md flex items-center gap-2 animate-fadeIn font-medium">
+          <Check className="w-4 h-4 shrink-0" />
+          <span>{actionToast}</span>
+        </div>
+      )}
+
       {/* Header of Links Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-slate-50 p-4 sm:p-5 rounded-2xl border border-blue-100">
         <div className="flex items-start gap-3.5">
@@ -454,6 +513,7 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
             />
             {searchQuery && (
               <button
+                type="button"
                 onClick={() => setSearchQuery('')}
                 className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 cursor-pointer"
               >
@@ -464,7 +524,7 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
         </div>
       )}
 
-      {/* Cards Grid — Equal styling as image cards */}
+      {/* Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {visibleLinks.map((item) => {
           const badge = getTipoBadge(item.tipo);
@@ -478,7 +538,7 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
               className="group bg-white hover:bg-slate-50/70 border border-slate-200 hover:border-blue-300 rounded-xl p-4 shadow-xs hover:shadow-md transition flex flex-col justify-between space-y-3"
             >
               <div className="space-y-2">
-                {/* Header Tag & Actions */}
+                {/* Header Tag & Actions (Copy, Edit, Delete) */}
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex flex-wrap items-center gap-1.5">
                     <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border flex items-center gap-1.5 ${badge.bg}`}>
@@ -493,11 +553,12 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition">
+                  <div className="flex items-center gap-1 opacity-90 group-hover:opacity-100 transition">
                     <button
+                      type="button"
                       onClick={() => handleCopyLink(item)}
                       title="Copiar Link"
-                      className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-md transition cursor-pointer"
+                      className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition cursor-pointer"
                     >
                       {copiedId === item.id ? (
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -506,16 +567,18 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
                       )}
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleOpenEdit(item)}
                       title="Editar Card"
-                      className="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition cursor-pointer"
+                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
                     >
                       <Edit3 className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => handleDelete(item.id)}
+                      type="button"
+                      onClick={() => handleDelete(item.id, item.titulo)}
                       title="Excluir Card"
-                      className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition cursor-pointer"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -545,7 +608,7 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
                   href={item.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-2 px-3 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-blue-200 hover:border-blue-600 transition shadow-2xs"
+                  className="w-full py-2 px-3 rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 border border-blue-200 hover:border-blue-600 transition shadow-2xs cursor-pointer"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   <span>Acessar Arquivo / Link</span>
@@ -575,13 +638,17 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
       </div>
 
       {/* Modal: Adicionar / Editar Link de Material */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fadeIn">
+      {showModal && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-xs animate-fadeIn"
+          onClick={() => setShowModal(false)}
+        >
           <div 
-            className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-scaleUp"
+            className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-scaleUp max-h-[92vh] flex flex-col"
             onClick={e => e.stopPropagation()}
           >
-            <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
+            {/* Modal Header */}
+            <div className="bg-slate-900 text-white p-4 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <LinkIcon className="w-5 h-5 text-blue-400" />
                 <h4 className="font-bold text-sm">
@@ -589,14 +656,24 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
                 </h4>
               </div>
               <button 
-                onClick={() => setShowAddModal(false)} 
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                type="button"
+                onClick={() => setShowModal(false)} 
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="p-5 space-y-4">
+            {/* Modal Form */}
+            <form onSubmit={handleSave} className="p-5 space-y-4 overflow-y-auto">
+              {/* Inline Error Banner */}
+              {formError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-start gap-2 animate-fadeIn">
+                  <AlertCircle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <div className="leading-relaxed font-medium">{formError}</div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
                   Nome / Título do Material ou Arquivo: *
@@ -607,7 +684,7 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
                   placeholder="Ex: Apostila de Licitações 13.303.pdf, Planilha de Finanças, Drive de Questões..."
                   value={formTitulo}
                   onChange={(e) => setFormTitulo(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 focus:outline-hidden focus:border-blue-600"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 focus:outline-hidden focus:border-blue-600 focus:bg-white"
                 />
               </div>
 
@@ -621,7 +698,7 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
                   placeholder="https://drive.google.com/... ou https://notion.so/... ou link do arquivo"
                   value={formUrl}
                   onChange={(e) => setFormUrl(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 focus:outline-hidden focus:border-blue-600 font-mono"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 focus:outline-hidden focus:border-blue-600 focus:bg-white font-mono"
                 />
               </div>
 
@@ -633,7 +710,7 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
                   <select
                     value={formTipo}
                     onChange={(e) => setFormTipo(e.target.value as any)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 font-medium"
                   >
                     <option value="pdf">📄 Documento PDF / Apostila</option>
                     <option value="planilha">📊 Planilha Excel / Google Sheets</option>
@@ -677,26 +754,28 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="Ex: Ler antes de resolver as questões de sábado; tabela na página 12."
+                  placeholder="Ex: Resolução comentada, tabela resumo, foco na Cesgranrio..."
                   value={formDescricao}
                   onChange={(e) => setFormDescricao(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 focus:outline-hidden focus:border-blue-600"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs text-slate-800 focus:outline-hidden focus:border-blue-600 focus:bg-white"
                 />
               </div>
 
+              {/* Action Buttons */}
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800"
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs transition"
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-xs hover:shadow-md transition cursor-pointer flex items-center gap-1.5"
                 >
-                  {editingItem ? 'Salvar Alterações' : 'Adicionar Card'}
+                  <Save className="w-4 h-4" />
+                  <span>{editingItem ? 'Salvar Alterações' : 'Adicionar Card'}</span>
                 </button>
               </div>
             </form>

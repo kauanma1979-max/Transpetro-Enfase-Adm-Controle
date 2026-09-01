@@ -46,15 +46,15 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
     numero: 1,
     blocoId: 1,
     blocoNome: 'BLOCO 1 — FUNDAÇÃO E LEGISLAÇÃO NUCLEAR (S1 a S5 · 105h)',
-    datas: '25/08 a 31/08/2026',
+    datas: '24/08 a 30/08/2026',
     titulo: 'Semana 1: Licitações Públicas (14.133/21) + Estatuto das Estatais (13.303/16: Governança, Licitações e Contratos)',
     metaSemanal: 'Construir a base nas 2 legislações de maior peso da prova da Transpetro com estudo intercalado diário (3h/dia divididas em 2 blocos de 1h30).',
     horasTotais: 21,
     dias: [
       {
         id: 's1-d1',
-        diaSemana: 'Terça-feira',
-        dataSugerida: '25/08',
+        diaSemana: 'Segunda-feira',
+        dataSugerida: '24/08',
         horas: 3,
         focoGeralDoDia: 'Princípios da Lei 14.133 + Lei 13.303/16: Governança das Estatais e Requisitos de Administradores',
         blocoA: {
@@ -90,8 +90,8 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
       },
       {
         id: 's1-d2',
-        diaSemana: 'Quarta-feira',
-        dataSugerida: '26/08',
+        diaSemana: 'Terça-feira',
+        dataSugerida: '25/08',
         horas: 3,
         focoGeralDoDia: 'Modalidades Licitatórias (14.133) + Licitações nas Estatais (Lei 13.303/16: Modos de Disputa e Riscos)',
         blocoA: {
@@ -127,8 +127,8 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
       },
       {
         id: 's1-d3',
-        diaSemana: 'Quinta-feira',
-        dataSugerida: '27/08',
+        diaSemana: 'Quarta-feira',
+        dataSugerida: '26/08',
         horas: 3,
         focoGeralDoDia: 'Fases da Licitação (14.133) + Contratos das Estatais (Lei 13.303/16: Fiscalização e Sanções)',
         blocoA: {
@@ -165,7 +165,7 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
       {
         id: 's1-d4',
         diaSemana: 'Quinta-feira',
-        dataSugerida: '20/08',
+        dataSugerida: '27/08',
         horas: 3,
         focoGeralDoDia: 'Contratação Direta (Dispensa x Inexigibilidade) + Desconto Comercial x Racional',
         blocoA: {
@@ -202,7 +202,7 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
       {
         id: 's1-d5',
         diaSemana: 'Sexta-feira',
-        dataSugerida: '21/08',
+        dataSugerida: '28/08',
         horas: 3,
         focoGeralDoDia: 'Lei das Estatais (13.303/16 arts. 28-38) + Taxas Nominais e Efetivas',
         blocoA: {
@@ -239,7 +239,7 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
       {
         id: 's1-d6',
         diaSemana: 'Sábado',
-        dataSugerida: '22/08',
+        dataSugerida: '29/08',
         horas: 3,
         focoGeralDoDia: 'Lei 13.303 (Procedimentos e Contratos) + Noções de Informática / LGPD',
         blocoA: {
@@ -276,7 +276,7 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
       {
         id: 's1-d7',
         diaSemana: 'Domingo',
-        dataSugerida: '23/08',
+        dataSugerida: '30/08',
         horas: 3,
         focoGeralDoDia: 'Bateria Semanal de 40 Questões + Revisão Espaçada e Caderno de Erros',
         blocoA: {
@@ -1560,20 +1560,20 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
     });
   });
 
-  // SEMANA 14: Reta Final e Véspera da Prova (5 dias, encerrando rigorosamente em 28/11/2026)
+  // SEMANA 14: Reta Final e Véspera da Prova (6 dias: 23/11 a 28/11/2026)
   semanasExtras.push({
     numero: 14,
     blocoId: 3,
     blocoNome: 'BLOCO 3 — FECHAMENTO E RETA FINAL (S10 a S14 · 99h)',
-    datas: '',
-    titulo: 'Semana 14: Semana da Prova (Encerramento em 28/11/2026) — Revisão de Véspera e Estabilização',
+    datas: '23/11 a 28/11/2026',
+    titulo: 'Semana 14: Semana da Prova (23/11 a 28/11/2026) — Revisão de Véspera e Estabilização',
     metaSemanal: 'Revisão final estratégica dos pontos de maior incidência, consulta ao Caderno de Erros e descanso cognitivo para a prova de domingo (29/11/2026 às 13h00).',
-    horasTotais: 15, // 5 dias x 3 horas = 15 horas
+    horasTotais: 18, // 6 dias x 3 horas = 18 horas
     dias: [
       {
         id: 's14-d1',
-        diaSemana: 'Terça-feira',
-        dataSugerida: '',
+        diaSemana: 'Segunda-feira',
+        dataSugerida: '23/11',
         horas: 3,
         focoGeralDoDia: 'Repassagem Final: Leis 13.303/16 (Estatais) e 14.133/21 + Balanço Patrimonial e DRE',
         blocoA: {
@@ -1609,8 +1609,8 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
       },
       {
         id: 's14-d2',
-        diaSemana: 'Quarta-feira',
-        dataSugerida: '',
+        diaSemana: 'Terça-feira',
+        dataSugerida: '24/11',
         horas: 3,
         focoGeralDoDia: 'Repassagem Final: Gestão de Estoques (Curva ABC / LEC / PEPS) + RH (C.H.A. e Avaliação 360°)',
         blocoA: {
@@ -1646,8 +1646,8 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
       },
       {
         id: 's14-d3',
-        diaSemana: 'Quinta-feira',
-        dataSugerida: '',
+        diaSemana: 'Quarta-feira',
+        dataSugerida: '25/11',
         horas: 3,
         focoGeralDoDia: 'Repassagem Final: SGI (ISO 9001/14001/45001) + Informática (Excel Fórmulas e LGPD)',
         blocoA: {
@@ -1683,8 +1683,45 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
       },
       {
         id: 's14-d4',
+        diaSemana: 'Quinta-feira',
+        dataSugerida: '26/11',
+        horas: 3,
+        focoGeralDoDia: 'Repassagem Final: DFC (Método Direto e Indireto) + Gestão de Processos e Indicadores BSC',
+        blocoA: {
+          disciplina: 'Finanças / Contabilidade',
+          disciplinaId: 'financas',
+          subtopico: 'Repassagem Relâmpago: Demonstração dos Fluxos de Caixa (DFC: Operacional, Investimento e Financiamento)',
+          duracaoMin: 90,
+          teoriaMin: 20,
+          questoesMin: 55,
+          revisaoMin: 15,
+          objetivos: [
+            'Diferença entre Método Direto (recebimentos e pagamentos brutos) e Indireto (ajuste do Lucro Líquido)',
+            'Identificar atividades operacionais, de investimento e de financiamento',
+            'Resolver 15 questões Cesgranrio de DFC'
+          ],
+          dicaCesgranrio: 'Na Cesgranrio, pagamento de dividendos é financiamento; recebimento de dividendos é operacional/investimento.'
+        },
+        blocoB: {
+          disciplina: 'Processos Adm. / Gestão',
+          disciplinaId: 'processos_adm',
+          subtopico: 'Repassagem Relâmpago: Mapeamento de Processos (BPMN / SIPOC) e Balanced Scorecard (BSC)',
+          duracaoMin: 90,
+          teoriaMin: 20,
+          questoesMin: 55,
+          revisaoMin: 15,
+          objetivos: [
+            '4 Perspectivas do BSC: Financeira, Clientes, Processos Internos e Aprendizado/Crescimento',
+            'Conceitos de macroprocesso, processo, subprocesso, atividade e tarefa',
+            'Resolver 15 questões Cesgranrio'
+          ],
+          dicaCesgranrio: 'O BSC estabelece relações de causa e efeito entre as quatro perspectivas estratégicas.'
+        }
+      },
+      {
+        id: 's14-d5',
         diaSemana: 'Sexta-feira',
-        dataSugerida: '',
+        dataSugerida: '27/11',
         horas: 3,
         focoGeralDoDia: 'Simulação Rápida & Pegadinhas Cesgranrio + Revisão das Questões Mais Erradas',
         blocoA: {
@@ -1718,9 +1755,9 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
         }
       },
       {
-        id: 's14-d5',
+        id: 's14-d6',
         diaSemana: 'Sábado',
-        dataSugerida: '',
+        dataSugerida: '28/11',
         horas: 3,
         focoGeralDoDia: 'Véspera da Prova (28/11/2026): Revisão Leve Exclusiva do Caderno de Erros + Descanso Cognitivo',
         blocoA: {
@@ -1764,21 +1801,14 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
 // Concatena as semanas restantes gerando todas as 14 semanas até a prova
 CRONOGRAMA_15_SEMANAS.push(...gerarSemanasRestantes());
 
-// Data de início configurada dinamicamente para HOJE
-const hoje = new Date();
-hoje.setHours(0, 0, 0, 0);
-
-const diaHoje = String(hoje.getDate()).padStart(2, '0');
-const mesHoje = String(hoje.getMonth() + 1).padStart(2, '0');
-const anoHoje = hoje.getFullYear();
-
-export const DATA_INICIO_ESTUDOS = `${diaHoje}/${mesHoje}/${anoHoje}`;
+// Datas FIXAS do cronograma de estudos: Início em 24/08/2026 e Encerramento em 28/11/2026 (Prova: 29/11/2026)
+export const DATA_INICIO_ESTUDOS = '24/08/2026';
 export const DATA_ENCERRAMENTO_ESTUDOS = '28/11/2026';
 export const DATA_PROVA_OFICIAL = '29/11/2026';
 
 export const TOTAL_SEMANAS_ESTUDO = CRONOGRAMA_15_SEMANAS.length; // 14 semanas
-export const TOTAL_DIAS_ESTUDO = CRONOGRAMA_15_SEMANAS.reduce((acc, sem) => acc + sem.dias.length, 0); // 96 dias
-export const TOTAL_HORAS_ESTUDO = TOTAL_DIAS_ESTUDO * 3; // 288 horas (3h/dia)
+export const TOTAL_DIAS_ESTUDO = CRONOGRAMA_15_SEMANAS.reduce((acc, sem) => acc + sem.dias.length, 0); // 97 dias
+export const TOTAL_HORAS_ESTUDO = TOTAL_DIAS_ESTUDO * 3; // 291 horas (3h/dia)
 
 const NOMES_DIAS_SEMANA_MAP = [
   'Domingo',
@@ -1790,9 +1820,10 @@ const NOMES_DIAS_SEMANA_MAP = [
   'Sábado'
 ];
 
-// Normaliza todas as semanas e dias para iniciar rigorosamente na data de HOJE e encerrar em 28/11/2026
-(function normalizarDatasParaHoje() {
-  const dataBase = new Date();
+// Normaliza todas as semanas e dias para iniciar rigorosamente em 24/08/2026 e encerrar em 28/11/2026
+(function normalizarDatasFixas() {
+  // Data base fixa: 24 de Agosto de 2026 (Segunda-feira) - Mês 7 no JavaScript (0-indexed)
+  const dataBase = new Date(2026, 7, 24);
   dataBase.setHours(0, 0, 0, 0);
 
   const formataDiaMes = (d: Date) => {

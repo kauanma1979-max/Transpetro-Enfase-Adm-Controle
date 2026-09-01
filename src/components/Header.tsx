@@ -74,7 +74,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-slate-500 hidden md:inline">·</span>
             <span className="inline-flex items-center gap-1 text-[11px] text-amber-300 font-semibold bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
               <Calendar className="w-3 h-3 text-amber-400" />
-              Início: Hoje ({DATA_INICIO_ESTUDOS}) · ~{timeLeft.days} Dias até a Prova
+              Cronograma Fixo: {DATA_INICIO_ESTUDOS} a {DATA_ENCERRAMENTO_ESTUDOS}
             </span>
           </div>
 

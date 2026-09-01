@@ -50,8 +50,50 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
   onOpenSessionTimer,
   onNavigateToVerticalizado
 }) => {
-  const [selectedWeekNum, setSelectedWeekNum] = useState<number>(1);
-  const [activeBlocoFilter, setActiveBlocoFilter] = useState<number | 'todos'>('todos');
+  const [selectedWeekNum, setSelectedWeekNum] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('transpetro_schedule_selected_week');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed) && parsed >= 1 && parsed <= TOTAL_SEMANAS_ESTUDO) {
+          return parsed;
+        }
+      }
+    } catch {
+      // ignore
+    }
+    return 1;
+  });
+
+  const [activeBlocoFilter, setActiveBlocoFilter] = useState<number | 'todos'>(() => {
+    try {
+      const saved = localStorage.getItem('transpetro_schedule_bloco_filter');
+      if (saved) {
+        if (saved === 'todos') return 'todos';
+        const parsed = parseInt(saved, 10);
+        if (!isNaN(parsed)) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return 'todos';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('transpetro_schedule_selected_week', String(selectedWeekNum));
+    } catch {
+      // ignore
+    }
+  }, [selectedWeekNum]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('transpetro_schedule_bloco_filter', String(activeBlocoFilter));
+    } catch {
+      // ignore
+    }
+  }, [activeBlocoFilter]);
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
   const [subjectNotes, setSubjectNotes] = useState<Record<string, string>>(() => {
     try {

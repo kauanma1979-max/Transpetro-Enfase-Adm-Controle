@@ -21,7 +21,20 @@ interface TabMaterialEstudoProps {
 }
 
 export const TabMaterialEstudo: React.FC<TabMaterialEstudoProps> = ({ onOpenCalculator }) => {
-  const [moduloAtivo, setModuloAtivo] = useState<string>('proc-adm');
+  const [moduloAtivo, setModuloAtivo] = useState<string>(() => {
+    try {
+      return localStorage.getItem('transpetro_material_selected_modulo') || 'proc-adm';
+    } catch {
+      return 'proc-adm';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('transpetro_material_selected_modulo', moduloAtivo);
+    } catch {}
+  }, [moduloAtivo]);
+
   const [busca, setBusca] = useState<string>('');
 
   // Storage for custom mind maps & user notes per secao

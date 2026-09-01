@@ -65,9 +65,46 @@ export const EditalVerticalizado: React.FC = () => {
   });
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMacro, setSelectedMacro] = useState<MacroDivisaoId | 'todas'>('todas');
-  const [selectedPrioridade, setSelectedPrioridade] = useState<string>('todas');
-  const [selectedStatus, setSelectedStatus] = useState<string>('todos');
+  const [selectedMacro, setSelectedMacro] = useState<MacroDivisaoId | 'todas'>(() => {
+    try {
+      const saved = localStorage.getItem('transpetro_vertical_macro');
+      return (saved as MacroDivisaoId | 'todas') || 'todas';
+    } catch {
+      return 'todas';
+    }
+  });
+  const [selectedPrioridade, setSelectedPrioridade] = useState<string>(() => {
+    try {
+      return localStorage.getItem('transpetro_vertical_prioridade') || 'todas';
+    } catch {
+      return 'todas';
+    }
+  });
+  const [selectedStatus, setSelectedStatus] = useState<string>(() => {
+    try {
+      return localStorage.getItem('transpetro_vertical_status') || 'todos';
+    } catch {
+      return 'todos';
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('transpetro_vertical_macro', selectedMacro);
+    } catch {}
+  }, [selectedMacro]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('transpetro_vertical_prioridade', selectedPrioridade);
+    } catch {}
+  }, [selectedPrioridade]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('transpetro_vertical_status', selectedStatus);
+    } catch {}
+  }, [selectedStatus]);
   const [expandedTopics, setExpandedTopics] = useState<Record<string, boolean>>({});
   const [collapsedMacroSections, setCollapsedMacroSections] = useState<Record<string, boolean>>({});
   const [savedTopicToasts, setSavedTopicToasts] = useState<Record<string, boolean>>({});

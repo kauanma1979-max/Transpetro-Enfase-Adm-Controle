@@ -24,7 +24,36 @@ import {
 import { EDITAL_INFO } from './data/editalData';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<string>('edital');
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    return localStorage.getItem('transpetro_active_tab_v1') || 'edital';
+  });
+
+  const scrollPositionsRef = React.useRef<Record<string, number>>({});
+
+  const handleTabChange = (newTab: string) => {
+    if (newTab === activeTab) return;
+
+    // 1. Save scroll position of current tab
+    scrollPositionsRef.current[activeTab] = window.scrollY;
+
+    // 2. Set new active tab
+    setActiveTab(newTab);
+    try {
+      localStorage.setItem('transpetro_active_tab_v1', newTab);
+    } catch {
+      // ignore
+    }
+
+    // 3. Restore scroll position of destination tab
+    requestAnimationFrame(() => {
+      const targetScroll = scrollPositionsRef.current[newTab] ?? 0;
+      window.scrollTo({
+        top: targetScroll,
+        behavior: 'instant' as ScrollBehavior
+      });
+    });
+  };
+
   const [completedDays, setCompletedDays] = useState<string[]>(() => {
     const saved = localStorage.getItem('transpetro_completed_days_v2');
     if (saved) {
@@ -144,23 +173,45 @@ Gerado em: ${new Date().toLocaleString('pt-BR')}
       {/* Main Views Container */}
       <main className="flex-1 pb-16 px-4 max-w-7xl mx-auto w-full pt-6">
         {/* In-body Segmented Navigation Tabs */}
-        <NavigationTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+        <NavigationTabs activeTab={activeTab} setActiveTab={handleTabChange} />
 
-        {activeTab === 'edital' && <EditalSummary />}
-        {activeTab === 'verticalizado' && <EditalVerticalizado />}
-        {activeTab === 'pareto' && <ParetoMatrix />}
-        {activeTab === 'material' && <TabMaterialEstudo onOpenCalculator={handleOpenCalculator} />}
-        {activeTab === 'cronograma' && (
+        {/* Persistent Tab Views - State & Scroll preserved */}
+        <div style={{ display: activeTab === 'edital' ? 'block' : 'none' }}>
+          <EditalSummary />
+        </div>
+
+        <div style={{ display: activeTab === 'verticalizado' ? 'block' : 'none' }}>
+          <EditalVerticalizado />
+        </div>
+
+        <div style={{ display: activeTab === 'pareto' ? 'block' : 'none' }}>
+          <ParetoMatrix />
+        </div>
+
+        <div style={{ display: activeTab === 'material' ? 'block' : 'none' }}>
+          <TabMaterialEstudo onOpenCalculator={handleOpenCalculator} />
+        </div>
+
+        <div style={{ display: activeTab === 'cronograma' ? 'block' : 'none' }}>
           <StudySchedule
             completedDays={completedDays}
             onToggleDay={handleToggleDay}
             onOpenSessionTimer={(day) => setActiveSessionDay(day)}
-            onNavigateToVerticalizado={() => setActiveTab('verticalizado')}
+            onNavigateToVerticalizado={() => handleTabChange('verticalizado')}
           />
-        )}
-        {activeTab === 'cortes' && <CutRules />}
-        {activeTab === 'banca' && <BancaCesgranrio />}
-        {activeTab === 'caderno' && <ErrorNotebook />}
+        </div>
+
+        <div style={{ display: activeTab === 'cortes' ? 'block' : 'none' }}>
+          <CutRules />
+        </div>
+
+        <div style={{ display: activeTab === 'banca' ? 'block' : 'none' }}>
+          <BancaCesgranrio />
+        </div>
+
+        <div style={{ display: activeTab === 'caderno' ? 'block' : 'none' }}>
+          <ErrorNotebook />
+        </div>
       </main>
 
       {/* Backup and Restore Modal */}

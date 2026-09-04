@@ -54,16 +54,30 @@ export default function App() {
     });
   };
 
-  const [completedDays, setCompletedDays] = useState<string[]>(() => {
-    const saved = localStorage.getItem('transpetro_completed_days_v2');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return [];
+  const parseCompletedDays = (raw: string | null): string[] => {
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(item => typeof item === 'string' && item.trim().length > 0);
       }
+      if (parsed && typeof parsed === 'object') {
+        return Object.keys(parsed).filter(k => Boolean(parsed[k]));
+      }
+    } catch {
+      // ignore
     }
     return [];
+  };
+
+  const [completedDays, setCompletedDays] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('transpetro_completed_days_v2') || 
+                    localStorage.getItem('transpetro_completed_days');
+      return parseCompletedDays(saved);
+    } catch {
+      return [];
+    }
   });
 
   const [activeSessionDay, setActiveSessionDay] = useState<ScheduleDay | null>(null);
@@ -77,15 +91,18 @@ export default function App() {
   };
 
   useEffect(() => {
-    localStorage.setItem('transpetro_completed_days_v2', JSON.stringify(completedDays));
+    try {
+      localStorage.setItem('transpetro_completed_days_v2', JSON.stringify(completedDays));
+    } catch (e) {
+      console.error('Error writing completed days to storage:', e);
+    }
   }, [completedDays]);
 
   const handleDataRestored = () => {
     try {
-      const rawDays = localStorage.getItem('transpetro_completed_days_v2');
-      if (rawDays) {
-        setCompletedDays(JSON.parse(rawDays));
-      }
+      const rawDays = localStorage.getItem('transpetro_completed_days_v2') || 
+                      localStorage.getItem('transpetro_completed_days');
+      setCompletedDays(parseCompletedDays(rawDays));
     } catch (e) { /* ignore */ }
   };
 
@@ -100,19 +117,40 @@ export default function App() {
   }, []);
 
   const handleToggleDay = (dayId: string) => {
-    setCompletedDays(prev => 
-      prev.includes(dayId) ? prev.filter(id => id !== dayId) : [...prev, dayId]
-    );
+    setCompletedDays(prev => {
+      const arr = Array.isArray(prev) ? prev : [];
+      const isCompleted = arr.includes(dayId);
+      const next = isCompleted ? arr.filter(id => id !== dayId) : [...arr, dayId];
+      try {
+        localStorage.setItem('transpetro_completed_days_v2', JSON.stringify(next));
+      } catch (e) {
+        console.error('Error saving completed days', e);
+      }
+      return next;
+    });
   };
 
   const handleCompleteDay = (dayId: string) => {
-    if (!completedDays.includes(dayId)) {
-      setCompletedDays(prev => [...prev, dayId]);
-    }
+    setCompletedDays(prev => {
+      const arr = Array.isArray(prev) ? prev : [];
+      if (!arr.includes(dayId)) {
+        const next = [...arr, dayId];
+        try {
+          localStorage.setItem('transpetro_completed_days_v2', JSON.stringify(next));
+        } catch (e) {
+          console.error(e);
+        }
+        return next;
+      }
+      return arr;
+    });
   };
 
   const handleResetProgress = () => {
     if (window.confirm('Deseja realmente zerar o seu progresso de dias estudados? Esta ação não afetará o Caderno de Erros nem o Edital Verticalizado.')) {
+      try {
+        localStorage.setItem('transpetro_completed_days_v2', JSON.stringify([]));
+      } catch (e) {}
       setCompletedDays([]);
     }
   };

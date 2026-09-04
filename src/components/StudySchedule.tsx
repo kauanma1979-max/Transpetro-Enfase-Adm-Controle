@@ -95,6 +95,61 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
     }
   }, [activeBlocoFilter]);
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
+  const [completedBlocks, setCompletedBlocks] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('transpetro_completed_blocks_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('transpetro_completed_blocks_v1', JSON.stringify(completedBlocks));
+    } catch {}
+  }, [completedBlocks]);
+
+  const handleToggleDayWrapper = (dayId: string) => {
+    const isDone = Array.isArray(completedDays) && completedDays.includes(dayId);
+    if (!isDone) {
+      // Marcar dia e ambos os blocos
+      setCompletedBlocks(prev => {
+        const set = new Set(prev);
+        set.add(`${dayId}_blocoA`);
+        set.add(`${dayId}_blocoB`);
+        return Array.from(set);
+      });
+    } else {
+      // Desmarcar dia e ambos os blocos
+      setCompletedBlocks(prev => prev.filter(k => k !== `${dayId}_blocoA` && k !== `${dayId}_blocoB`));
+    }
+    onToggleDay(dayId);
+  };
+
+  const handleToggleBlock = (dayId: string, blockKey: 'blocoA' | 'blocoB') => {
+    const fullKey = `${dayId}_${blockKey}`;
+    const otherKey = `${dayId}_${blockKey === 'blocoA' ? 'blocoB' : 'blocoA'}`;
+    const isBlockDone = completedBlocks.includes(fullKey);
+    const isOtherBlockDone = completedBlocks.includes(otherKey);
+
+    let nextBlocks: string[];
+    if (isBlockDone) {
+      nextBlocks = completedBlocks.filter(k => k !== fullKey);
+      if (Array.isArray(completedDays) && completedDays.includes(dayId)) {
+        onToggleDay(dayId);
+      }
+    } else {
+      nextBlocks = [...completedBlocks, fullKey];
+      if (isOtherBlockDone && Array.isArray(completedDays) && !completedDays.includes(dayId)) {
+        onToggleDay(dayId);
+      }
+    }
+    setCompletedBlocks(nextBlocks);
+  };
+
   const [subjectNotes, setSubjectNotes] = useState<Record<string, string>>(() => {
     try {
       const saved = localStorage.getItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES);
@@ -166,7 +221,7 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
     : CRONOGRAMA_15_SEMANAS.filter(w => w.blocoId === activeBlocoFilter);
 
   // Calculate week completion (7 days per week)
-  const weekCompletedCount = currentWeek.dias.filter(d => completedDays.includes(d.id)).length;
+  const weekCompletedCount = currentWeek.dias.filter(d => Array.isArray(completedDays) && completedDays.includes(d.id)).length;
   const weekProgressPct = Math.round((weekCompletedCount / currentWeek.dias.length) * 100);
 
   return (
@@ -258,7 +313,7 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
           <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none">
             {filteredWeeks.map((week) => {
               const isSelected = selectedWeekNum === week.numero;
-              const completedInWeek = week.dias.filter(d => completedDays.includes(d.id)).length;
+              const completedInWeek = week.dias.filter(d => Array.isArray(completedDays) && completedDays.includes(d.id)).length;
               const isWeekFull = completedInWeek === week.dias.length;
 
               return (
@@ -330,38 +385,56 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
       {/* Daily Study Cards (Segunda a Domingo · 7 Dias) */}
       <div className="space-y-4">
         {currentWeek.dias.map((dia) => {
-          const isDone = completedDays.includes(dia.id);
+          const isDone = Array.isArray(completedDays) && completedDays.includes(dia.id);
+          const isBlockADone = isDone || completedBlocks.includes(`${dia.id}_blocoA`);
+          const isBlockBDone = isDone || completedBlocks.includes(`${dia.id}_blocoB`);
 
           return (
             <div 
               key={dia.id}
               className={`bg-white rounded-2xl p-5 sm:p-6 border transition-all shadow-xs ${
                 isDone 
-                  ? 'border-emerald-300 bg-emerald-50/20' 
+                  ? 'border-emerald-300 bg-emerald-50/25 ring-1 ring-emerald-200/60' 
                   : 'border-slate-200 hover:border-slate-300'
               }`}
             >
-              {/* Day Header */}
+              {/* Day Header - Fully interactive */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-                <div className="flex items-center gap-3">
+                <div 
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleToggleDayWrapper(dia.id)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleToggleDayWrapper(dia.id);
+                    }
+                  }}
+                  className="flex items-center gap-3.5 cursor-pointer group select-none text-left flex-1"
+                  title={isDone ? 'Clique para desmarcar dia e matérias' : 'Clique na bolinha ou no título para marcar dia como concluído'}
+                >
                   <button
+                    type="button"
                     id={`btn-check-${dia.id}`}
-                    onClick={() => onToggleDay(dia.id)}
-                    className={`rounded-xl p-0.5 transition-transform active:scale-95 shrink-0 ${
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleToggleDayWrapper(dia.id);
+                    }}
+                    className={`rounded-xl p-1 transition-all active:scale-90 shrink-0 cursor-pointer ${
                       isDone 
                         ? 'text-emerald-600 hover:text-emerald-700' 
-                        : 'text-slate-300 hover:text-slate-400'
+                        : 'text-slate-300 hover:text-emerald-600 group-hover:text-emerald-500'
                     }`}
-                    title={isDone ? 'Marcar como não concluído' : 'Marcar 3h como concluídas'}
+                    title={isDone ? 'Marcar como não concluído' : 'Marcar dia e matérias como concluídos'}
                   >
                     {isDone ? (
-                      <CheckCircle2 className="w-7 h-7 fill-emerald-100" />
+                      <CheckCircle2 className="w-8 h-8 fill-emerald-100 text-emerald-600 drop-shadow-xs" />
                     ) : (
-                      <Circle className="w-7 h-7" />
+                      <Circle className="w-8 h-8 text-slate-300 group-hover:text-emerald-500 transition-colors" />
                     )}
                   </button>
 
-                  <div>
+                  <div className="flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-mono font-bold uppercase text-slate-900">
                         {dia.diaSemana} · {dia.dataSugerida}
@@ -369,14 +442,18 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
                       <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-100 text-emerald-800">
                         3 Horas Diárias (2x 1h30)
                       </span>
-                      {isDone && (
-                        <span className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-emerald-600 text-white">
-                          ✓ Concluído
+                      {isDone ? (
+                        <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-emerald-600 text-white flex items-center gap-1 shadow-2xs">
+                          <Check className="w-3.5 h-3.5 stroke-[3]" /> Concluído
+                        </span>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 group-hover:text-emerald-600 font-medium transition-colors">
+                          Clique na bolinha para concluir
                         </span>
                       )}
                     </div>
-                    <h4 className={`text-sm sm:text-base font-bold text-slate-800 mt-0.5 ${
-                      isDone ? 'line-through text-slate-400' : ''
+                    <h4 className={`text-sm sm:text-base font-bold text-slate-800 mt-1 transition-all ${
+                      isDone ? 'line-through text-slate-400 opacity-75' : 'group-hover:text-emerald-950'
                     }`}>
                       {dia.focoGeralDoDia}
                     </h4>
@@ -384,9 +461,13 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
                 </div>
 
                 <button
+                  type="button"
                   id={`btn-timer-${dia.id}`}
-                  onClick={() => onOpenSessionTimer(dia)}
-                  className="self-start sm:self-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenSessionTimer(dia);
+                  }}
+                  className="self-start sm:self-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer shrink-0"
                 >
                   <Play className="w-3.5 h-3.5 fill-white" />
                   <span>Abrir Cronômetro (3h)</span>
@@ -396,13 +477,42 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
               {/* 2 Subject Blocks Side-by-Side (Bloco A & Bloco B) with individual Details & Notes */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 {/* Bloco A: Matéria 1 */}
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/80 flex flex-col justify-between space-y-3">
+                <div className={`rounded-xl p-4 border flex flex-col justify-between space-y-3 transition-colors ${
+                  isBlockADone 
+                    ? 'bg-emerald-50/30 border-emerald-200' 
+                    : 'bg-slate-50 border-slate-200/80'
+                }`}>
                   <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase bg-emerald-100 text-emerald-800">
-                        Bloco 1 · 1h30 (90 min)
-                      </span>
-                      <span className="text-xs font-bold text-slate-600">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase bg-emerald-100 text-emerald-800">
+                          Bloco 1 · 1h30 (90 min)
+                        </span>
+                        <button
+                          type="button"
+                          id={`btn-check-${dia.id}-blocoA`}
+                          onClick={() => handleToggleBlock(dia.id, 'blocoA')}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer border ${
+                            isBlockADone
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                              : 'bg-white text-slate-600 hover:text-emerald-700 border-slate-200 hover:border-emerald-300'
+                          }`}
+                          title={isBlockADone ? 'Desmarcar matéria 1' : 'Concluir estudo desta matéria (1h30)'}
+                        >
+                          {isBlockADone ? (
+                            <>
+                              <Check className="w-3 h-3 stroke-[3]" />
+                              <span>Concluído</span>
+                            </>
+                          ) : (
+                            <>
+                              <Circle className="w-3 h-3 text-slate-400" />
+                              <span>Marcar Estudo</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <span className="text-xs font-bold text-slate-600 truncate">
                         {dia.blocoA?.disciplina || 'Matéria 1'}
                       </span>
                     </div>
@@ -513,13 +623,42 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
                 </div>
 
                 {/* Bloco B: Matéria 2 */}
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/80 flex flex-col justify-between space-y-3">
+                <div className={`rounded-xl p-4 border flex flex-col justify-between space-y-3 transition-colors ${
+                  isBlockBDone 
+                    ? 'bg-blue-50/30 border-blue-200' 
+                    : 'bg-slate-50 border-slate-200/80'
+                }`}>
                   <div className="space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase bg-blue-100 text-blue-800">
-                        Bloco 2 · 1h30 (90 min)
-                      </span>
-                      <span className="text-xs font-bold text-slate-600">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase bg-blue-100 text-blue-800">
+                          Bloco 2 · 1h30 (90 min)
+                        </span>
+                        <button
+                          type="button"
+                          id={`btn-check-${dia.id}-blocoB`}
+                          onClick={() => handleToggleBlock(dia.id, 'blocoB')}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer border ${
+                            isBlockBDone
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                              : 'bg-white text-slate-600 hover:text-blue-700 border-slate-200 hover:border-blue-300'
+                          }`}
+                          title={isBlockBDone ? 'Desmarcar matéria 2' : 'Concluir estudo desta matéria (1h30)'}
+                        >
+                          {isBlockBDone ? (
+                            <>
+                              <Check className="w-3 h-3 stroke-[3]" />
+                              <span>Concluído</span>
+                            </>
+                          ) : (
+                            <>
+                              <Circle className="w-3 h-3 text-slate-400" />
+                              <span>Marcar Estudo</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <span className="text-xs font-bold text-slate-600 truncate">
                         {dia.blocoB?.disciplina || 'Matéria 2'}
                       </span>
                     </div>

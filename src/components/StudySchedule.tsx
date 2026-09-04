@@ -114,40 +114,54 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
 
   const handleToggleDayWrapper = (dayId: string) => {
     const isDone = Array.isArray(completedDays) && completedDays.includes(dayId);
+    const keyA = `${dayId}_blocoA`;
+    const keyB = `${dayId}_blocoB`;
+
     if (!isDone) {
       // Marcar dia e ambos os blocos
       setCompletedBlocks(prev => {
-        const set = new Set(prev);
-        set.add(`${dayId}_blocoA`);
-        set.add(`${dayId}_blocoB`);
-        return Array.from(set);
+        const next = new Set(prev);
+        next.add(keyA);
+        next.add(keyB);
+        return Array.from(next);
       });
     } else {
       // Desmarcar dia e ambos os blocos
-      setCompletedBlocks(prev => prev.filter(k => k !== `${dayId}_blocoA` && k !== `${dayId}_blocoB`));
+      setCompletedBlocks(prev => prev.filter(k => k !== keyA && k !== keyB));
     }
     onToggleDay(dayId);
   };
 
   const handleToggleBlock = (dayId: string, blockKey: 'blocoA' | 'blocoB') => {
-    const fullKey = `${dayId}_${blockKey}`;
-    const otherKey = `${dayId}_${blockKey === 'blocoA' ? 'blocoB' : 'blocoA'}`;
-    const isBlockDone = completedBlocks.includes(fullKey);
-    const isOtherBlockDone = completedBlocks.includes(otherKey);
+    const isDayDone = Array.isArray(completedDays) && completedDays.includes(dayId);
+    const keyA = `${dayId}_blocoA`;
+    const keyB = `${dayId}_blocoB`;
+    const targetKey = blockKey === 'blocoA' ? keyA : keyB;
+    const otherKey = blockKey === 'blocoA' ? keyB : keyA;
 
-    let nextBlocks: string[];
-    if (isBlockDone) {
-      nextBlocks = completedBlocks.filter(k => k !== fullKey);
-      if (Array.isArray(completedDays) && completedDays.includes(dayId)) {
+    const isCurrentBlockDone = isDayDone || completedBlocks.includes(targetKey);
+    const isOtherBlockDone = isDayDone || completedBlocks.includes(otherKey);
+
+    if (isCurrentBlockDone) {
+      // Desmarcar este bloco
+      const next = completedBlocks.filter(k => k !== targetKey);
+      // Se o outro bloco estava marcado devido ao dia completo, mantê-lo marcado
+      if (isDayDone && !next.includes(otherKey)) {
+        next.push(otherKey);
+      }
+      setCompletedBlocks(next);
+      if (isDayDone) {
         onToggleDay(dayId);
       }
     } else {
-      nextBlocks = [...completedBlocks, fullKey];
-      if (isOtherBlockDone && Array.isArray(completedDays) && !completedDays.includes(dayId)) {
+      // Marcar este bloco
+      const next = Array.from(new Set([...completedBlocks, targetKey]));
+      setCompletedBlocks(next);
+      // Se o outro bloco também estiver concluído, marca o dia todo
+      if (isOtherBlockDone && !isDayDone) {
         onToggleDay(dayId);
       }
     }
-    setCompletedBlocks(nextBlocks);
   };
 
   const [subjectNotes, setSubjectNotes] = useState<Record<string, string>>(() => {
@@ -400,41 +414,31 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
             >
               {/* Day Header - Fully interactive */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
-                <div 
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleToggleDayWrapper(dia.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      handleToggleDayWrapper(dia.id);
-                    }
-                  }}
-                  className="flex items-center gap-3.5 cursor-pointer group select-none text-left flex-1"
-                  title={isDone ? 'Clique para desmarcar dia e matérias' : 'Clique na bolinha ou no título para marcar dia como concluído'}
-                >
+                <div className="flex items-center gap-3.5 flex-1 min-w-0">
                   <button
                     type="button"
                     id={`btn-check-${dia.id}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleDayWrapper(dia.id);
-                    }}
+                    onClick={() => handleToggleDayWrapper(dia.id)}
                     className={`rounded-xl p-1 transition-all active:scale-90 shrink-0 cursor-pointer ${
                       isDone 
                         ? 'text-emerald-600 hover:text-emerald-700' 
-                        : 'text-slate-300 hover:text-emerald-600 group-hover:text-emerald-500'
+                        : 'text-slate-300 hover:text-emerald-600'
                     }`}
-                    title={isDone ? 'Marcar como não concluído' : 'Marcar dia e matérias como concluídos'}
+                    title={isDone ? 'Marcar dia como não concluído' : 'Marcar dia e matérias como concluídos'}
                   >
                     {isDone ? (
                       <CheckCircle2 className="w-8 h-8 fill-emerald-100 text-emerald-600 drop-shadow-xs" />
                     ) : (
-                      <Circle className="w-8 h-8 text-slate-300 group-hover:text-emerald-500 transition-colors" />
+                      <Circle className="w-8 h-8 text-slate-300 hover:text-emerald-500 transition-colors" />
                     )}
                   </button>
 
-                  <div className="flex-1">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleDayWrapper(dia.id)}
+                    className="flex-1 text-left cursor-pointer group select-none min-w-0"
+                    title={isDone ? 'Clique para desmarcar dia e matérias' : 'Clique para marcar dia como concluído'}
+                  >
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-mono font-bold uppercase text-slate-900">
                         {dia.diaSemana} · {dia.dataSugerida}
@@ -448,7 +452,7 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
                         </span>
                       ) : (
                         <span className="text-[11px] text-slate-400 group-hover:text-emerald-600 font-medium transition-colors">
-                          Clique na bolinha para concluir
+                          Clique para concluir dia
                         </span>
                       )}
                     </div>
@@ -457,7 +461,7 @@ export const StudySchedule: React.FC<StudyScheduleProps> = ({
                     }`}>
                       {dia.focoGeralDoDia}
                     </h4>
-                  </div>
+                  </button>
                 </div>
 
                 <button

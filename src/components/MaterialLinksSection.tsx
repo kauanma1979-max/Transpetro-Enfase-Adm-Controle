@@ -238,10 +238,11 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
 
   useEffect(() => {
     const deduplicated = sanitizeAndDeduplicate(links);
-    localStorage.setItem('transpetro_material_links_v1', JSON.stringify(deduplicated));
     try {
-      window.dispatchEvent(new CustomEvent('transpetro_storage_changed', { detail: { key: 'transpetro_material_links_v1' } }));
-    } catch (e) { /* ignore */ }
+      localStorage.setItem('transpetro_material_links_v1', JSON.stringify(deduplicated));
+    } catch (e) {
+      console.error('Error saving links', e);
+    }
   }, [links]);
 
   useEffect(() => {
@@ -255,10 +256,8 @@ export const MaterialLinksSection: React.FC<MaterialLinksSectionProps> = ({
     };
 
     window.addEventListener('transpetro_data_restored', handleRestore);
-    window.addEventListener('transpetro_storage_changed', handleRestore);
     return () => {
       window.removeEventListener('transpetro_data_restored', handleRestore);
-      window.removeEventListener('transpetro_storage_changed', handleRestore);
     };
   }, []);
 

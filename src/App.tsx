@@ -106,13 +106,11 @@ export default function App() {
     } catch (e) { /* ignore */ }
   };
 
-  // Event listener to auto-sync when backup is imported or modified
+  // Event listener to auto-sync when backup is imported
   useEffect(() => {
     window.addEventListener('transpetro_data_restored', handleDataRestored);
-    window.addEventListener('transpetro_storage_changed', handleDataRestored);
     return () => {
       window.removeEventListener('transpetro_data_restored', handleDataRestored);
-      window.removeEventListener('transpetro_storage_changed', handleDataRestored);
     };
   }, []);
 

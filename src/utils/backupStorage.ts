@@ -231,48 +231,141 @@ export const exportFullBackup = (): void => {
   }, 1000);
 };
 
+export const exportErrorNotebookJson = (): void => {
+  try {
+    const rawErrors = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
+    const errors = rawErrors ? JSON.parse(rawErrors) : [];
+    const jsonStr = JSON.stringify(errors, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const downloadLink = document.createElement('a');
+    const now = new Date();
+    const dateSuffix = now.toISOString().slice(0, 10);
+    const timeSuffix = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+    downloadLink.href = url;
+    downloadLink.setAttribute('download', `caderno_erros_transpetro_${dateSuffix}_${timeSuffix}.json`);
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    setTimeout(() => {
+      try {
+        document.body.removeChild(downloadLink);
+        URL.revokeObjectURL(url);
+      } catch (e) { /* ignore */ }
+    }, 1000);
+  } catch (e) {
+    console.error('Error exporting error notebook JSON', e);
+  }
+};
+
 export const restoreFromRawData = (dataObj: any): { success: boolean; message: string; stats?: BackupStats } => {
   try {
-    if (!dataObj || typeof dataObj !== 'object') {
+    if (!dataObj || (typeof dataObj !== 'object' && !Array.isArray(dataObj))) {
       return { success: false, message: 'Formato de dados inválido.' };
+    }
+
+    // CASE 1: The user uploaded an array directly
+    if (Array.isArray(dataObj)) {
+      if (dataObj.length > 0) {
+        const first = dataObj[0];
+        // Check if items are errors (have disciplina, regraCorreta, motivoErro, or subtopico)
+        if (first && (first.regraCorreta || first.disciplina || first.motivoErro || first.subtopico)) {
+          localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(dataObj));
+          localStorage.setItem('transpetro_caderno_erros_customized', 'true');
+          notifyDataUpdated(STORAGE_KEYS.ERROR_NOTEBOOK);
+          const stats = getBackupStats();
+          return {
+            success: true,
+            message: `Caderno de erros restaurado com sucesso! Foram carregados ${dataObj.length} registros de erros.`,
+            stats
+          };
+        }
+        // Check if items are completed days (array of string ids)
+        if (typeof first === 'string') {
+          localStorage.setItem(STORAGE_KEYS.COMPLETED_DAYS, JSON.stringify(dataObj));
+          notifyDataUpdated(STORAGE_KEYS.COMPLETED_DAYS);
+          const stats = getBackupStats();
+          return {
+            success: true,
+            message: `Cronograma restaurado com sucesso! Foram carregados ${dataObj.length} dias concluídos.`,
+            stats
+          };
+        }
+      }
     }
 
     const payload = dataObj.data || dataObj;
 
-    if (payload.completedDays && Array.isArray(payload.completedDays)) {
-      localStorage.setItem(STORAGE_KEYS.COMPLETED_DAYS, JSON.stringify(payload.completedDays));
+    // 1. COMPLETED DAYS
+    const days = payload.completedDays || 
+                 payload.diasConcluidos || 
+                 payload.completed_days || 
+                 payload[STORAGE_KEYS.COMPLETED_DAYS];
+    if (days && Array.isArray(days)) {
+      localStorage.setItem(STORAGE_KEYS.COMPLETED_DAYS, JSON.stringify(days));
     }
 
-    if (payload.errorNotebook && Array.isArray(payload.errorNotebook)) {
-      localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(payload.errorNotebook));
+    // 2. ERROR NOTEBOOK
+    const errorsList = payload.errorNotebook || 
+                       payload.caderno_erros || 
+                       payload.cadernoErros || 
+                       payload.errors || 
+                       payload.erros || 
+                       payload[STORAGE_KEYS.ERROR_NOTEBOOK] ||
+                       (payload.otherStorageKeys && payload.otherStorageKeys[STORAGE_KEYS.ERROR_NOTEBOOK]);
+    if (errorsList && Array.isArray(errorsList)) {
+      localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(errorsList));
+      localStorage.setItem('transpetro_caderno_erros_customized', 'true');
     }
 
-    if (payload.verticalSyllabusProgress && typeof payload.verticalSyllabusProgress === 'object') {
-      localStorage.setItem(STORAGE_KEYS.VERTICAL_SYLLABUS, JSON.stringify(payload.verticalSyllabusProgress));
+    // 3. VERTICAL SYLLABUS PROGRESS
+    const vert = payload.verticalSyllabusProgress || 
+                 payload.editalVerticalizado || 
+                 payload.verticalProgress || 
+                 payload[STORAGE_KEYS.VERTICAL_SYLLABUS];
+    if (vert && typeof vert === 'object') {
+      localStorage.setItem(STORAGE_KEYS.VERTICAL_SYLLABUS, JSON.stringify(vert));
     }
 
-    if (payload.customMaterials && typeof payload.customMaterials === 'object') {
-      localStorage.setItem(STORAGE_KEYS.CUSTOM_MATERIALS, JSON.stringify(payload.customMaterials));
+    // 4. CUSTOM MATERIALS
+    const mats = payload.customMaterials || 
+                 payload.materialEstudoCustom || 
+                 payload[STORAGE_KEYS.CUSTOM_MATERIALS];
+    if (mats && typeof mats === 'object') {
+      localStorage.setItem(STORAGE_KEYS.CUSTOM_MATERIALS, JSON.stringify(mats));
     }
 
-    if (payload.materialLinks && Array.isArray(payload.materialLinks)) {
-      localStorage.setItem(STORAGE_KEYS.MATERIAL_LINKS, JSON.stringify(payload.materialLinks));
+    // 5. MATERIAL LINKS
+    const links = payload.materialLinks || 
+                  payload.links || 
+                  payload[STORAGE_KEYS.MATERIAL_LINKS];
+    if (links && Array.isArray(links)) {
+      localStorage.setItem(STORAGE_KEYS.MATERIAL_LINKS, JSON.stringify(links));
     }
 
-    if (payload.scheduleDayNotes && typeof payload.scheduleDayNotes === 'object') {
-      localStorage.setItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES, JSON.stringify(payload.scheduleDayNotes));
+    // 6. SCHEDULE NOTES
+    const schedNotes = payload.scheduleDayNotes || 
+                       payload.dayNotes || 
+                       payload[STORAGE_KEYS.SCHEDULE_DAY_NOTES];
+    if (schedNotes && typeof schedNotes === 'object') {
+      localStorage.setItem(STORAGE_KEYS.SCHEDULE_DAY_NOTES, JSON.stringify(schedNotes));
     }
 
-    if (payload.bancaNotes && typeof payload.bancaNotes === 'object') {
-      localStorage.setItem(STORAGE_KEYS.BANCA_NOTES, JSON.stringify(payload.bancaNotes));
+    // 7. BANCA NOTES
+    const bancaNotes = payload.bancaNotes || 
+                       payload[STORAGE_KEYS.BANCA_NOTES];
+    if (bancaNotes && typeof bancaNotes === 'object') {
+      localStorage.setItem(STORAGE_KEYS.BANCA_NOTES, JSON.stringify(bancaNotes));
     }
 
+    // 8. OTHER KEYS
     if (payload.otherStorageKeys && typeof payload.otherStorageKeys === 'object') {
       Object.entries(payload.otherStorageKeys).forEach(([k, v]) => {
-        if (typeof v === 'string') {
-          localStorage.setItem(k, v);
-        } else {
-          localStorage.setItem(k, JSON.stringify(v));
+        if (k !== STORAGE_KEYS.ERROR_NOTEBOOK) {
+          if (typeof v === 'string') {
+            localStorage.setItem(k, v);
+          } else {
+            localStorage.setItem(k, JSON.stringify(v));
+          }
         }
       });
     }

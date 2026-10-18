@@ -26,7 +26,7 @@ import {
   ShieldAlert,
   ArrowRight
 } from 'lucide-react';
-import { exportFullBackup, notifyDataUpdated, STORAGE_KEYS } from '../utils/backupStorage';
+import { exportFullBackup, notifyDataUpdated, STORAGE_KEYS, exportErrorNotebookJson } from '../utils/backupStorage';
 
 export interface ErrorEntry {
   id: string;
@@ -308,22 +308,16 @@ const normalizeStr = (str: string) => {
 
 export const ErrorNotebook: React.FC = () => {
   const [errors, setErrors] = useState<ErrorEntry[]>(() => {
-    const saved = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
+      if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          // Merge newly introduced sample errors (like Português and Matemática) if absent
-          const existingIds = new Set(parsed.map(p => p.id));
-          const missingSamples = INITIAL_SAMPLE_ERRORS.filter(s => !existingIds.has(s.id));
-          if (missingSamples.length > 0 && parsed.every(p => p.id.startsWith('err-'))) {
-            return [...parsed, ...missingSamples];
-          }
+        if (Array.isArray(parsed) && parsed.length > 0) {
           return parsed;
         }
-      } catch (e) {
-        return INITIAL_SAMPLE_ERRORS;
       }
+    } catch (e) {
+      console.error('Error loading error notebook from storage', e);
     }
     return INITIAL_SAMPLE_ERRORS;
   });
@@ -369,6 +363,19 @@ export const ErrorNotebook: React.FC = () => {
   const totalProva = totalSimEspec + totalSimGerais;
   const totalProvaPct = Math.round((totalProva / 60) * 100);
 
+  // Helper to commit state changes immediately to storage and notify listeners
+  const saveErrorsImmediately = (newErrors: ErrorEntry[]) => {
+    setErrors(newErrors);
+    try {
+      localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(newErrors));
+      localStorage.setItem('transpetro_caderno_erros_customized', 'true');
+      notifyDataUpdated(STORAGE_KEYS.ERROR_NOTEBOOK);
+    } catch (e) {
+      console.error('Error writing error notebook to storage', e);
+    }
+  };
+
+  // Redundant fallback sync
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(errors));
@@ -377,23 +384,41 @@ export const ErrorNotebook: React.FC = () => {
     }
   }, [errors]);
 
-  // Listen to external data restore (from JSON backup import only)
+  // Guaranteed flush on window close or tab refresh
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      try {
+        localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(errors));
+      } catch (e) { /* ignore */ }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [errors]);
+
+  // Listen to external data restore (from JSON backup import or clipboard paste)
   useEffect(() => {
     const handleStorageRestore = () => {
       try {
         const saved = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
         if (saved) {
-          setErrors(JSON.parse(saved));
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            setErrors(parsed);
+          }
         }
       } catch (e) {
         // ignore
       }
     };
     window.addEventListener('transpetro_data_restored', handleStorageRestore);
-    return () => window.removeEventListener('transpetro_data_restored', handleStorageRestore);
+    window.addEventListener('transpetro_storage_changed', handleStorageRestore);
+    return () => {
+      window.removeEventListener('transpetro_data_restored', handleStorageRestore);
+      window.removeEventListener('transpetro_storage_changed', handleStorageRestore);
+    };
   }, []);
 
-  const handleAddError = (e: React.FormEvent) => {
+  const handleAddError = (e: React.FormEvent, downloadJson = false) => {
     e.preventDefault();
     if (!formData.subtopico || !formData.regraCorreta) return;
 
@@ -409,7 +434,8 @@ export const ErrorNotebook: React.FC = () => {
       revisado: false
     };
 
-    setErrors([newEntry, ...errors]);
+    const updated = [newEntry, ...errors];
+    saveErrorsImmediately(updated);
     setFormData({
       disciplina: formData.disciplina,
       subtopico: '',
@@ -418,8 +444,12 @@ export const ErrorNotebook: React.FC = () => {
       regraCorreta: ''
     });
     setShowAddModal(false);
-    setSaveToast('Novo erro gravado com sucesso no Caderno & Backup!');
+    setSaveToast('Novo erro gravado com sucesso no Caderno & Armazenamento!');
     setTimeout(() => setSaveToast(null), 3000);
+
+    if (downloadJson) {
+      exportErrorNotebookJson();
+    }
   };
 
   const handleOpenAddForDiscipline = (disciplinaNome: string, subtopicoInicial = '') => {
@@ -433,24 +463,31 @@ export const ErrorNotebook: React.FC = () => {
     setShowAddModal(true);
   };
 
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = (e: React.FormEvent, downloadJson = false) => {
     e.preventDefault();
     if (!editingError) return;
 
-    setErrors(errors.map(err => err.id === editingError.id ? editingError : err));
+    const updated = errors.map(err => err.id === editingError.id ? editingError : err);
+    saveErrorsImmediately(updated);
     setEditingError(null);
-    setSaveToast('Alterações salvas com sucesso no Backup JSON!');
+    setSaveToast('Alterações salvas com sucesso no Caderno & Armazenamento!');
     setTimeout(() => setSaveToast(null), 3000);
+
+    if (downloadJson) {
+      exportErrorNotebookJson();
+    }
   };
 
   const handleToggleRevisado = (id: string) => {
-    setErrors(errors.map(err => 
+    const updated = errors.map(err => 
       err.id === id ? { ...err, revisado: !err.revisado } : err
-    ));
+    );
+    saveErrorsImmediately(updated);
   };
 
   const handleDeleteError = (id: string) => {
-    setErrors(prev => prev.filter(err => err.id !== id));
+    const updated = errors.filter(err => err.id !== id);
+    saveErrorsImmediately(updated);
     setSaveToast('Registro de erro removido com sucesso!');
     setTimeout(() => setSaveToast(null), 3000);
   };
@@ -547,10 +584,19 @@ export const ErrorNotebook: React.FC = () => {
               id="btn-error-backup-json"
               onClick={() => exportFullBackup()}
               className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-              title="Baixar backup completo de todos os erros e dados em JSON"
+              title="Baixar backup completo de todos os erros e dados do app em JSON"
             >
               <Database className="w-3.5 h-3.5" />
-              <span>Salvar Backup JSON</span>
+              <span>Salvar Backup JSON Geral</span>
+            </button>
+            <button
+              id="btn-export-notebook-json"
+              onClick={() => exportErrorNotebookJson()}
+              className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-850 border border-blue-200 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+              title="Baixar arquivo JSON com todos os erros de todas as matérias"
+            >
+              <Download className="w-3.5 h-3.5 text-blue-600" />
+              <span>Baixar JSON dos Cadernos</span>
             </button>
             <button
               id="btn-export-csv-errors"
@@ -1045,13 +1091,22 @@ export const ErrorNotebook: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
                   className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors cursor-pointer"
                 >
                   Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleAddError(e, true)}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl font-bold transition-colors cursor-pointer shadow-xs"
+                  title="Salva o registro e baixa imediatamente o arquivo JSON atualizado"
+                >
+                  <Download className="w-4 h-4 text-blue-600" />
+                  <span>Salvar e Baixar JSON</span>
                 </button>
                 <button
                   type="submit"
@@ -1143,7 +1198,7 @@ export const ErrorNotebook: React.FC = () => {
                 />
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-4 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => setEditingError(null)}
@@ -1151,13 +1206,24 @@ export const ErrorNotebook: React.FC = () => {
                 >
                   Cancelar
                 </button>
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors cursor-pointer shadow-xs"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>Salvar Alterações no Backup</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => handleSaveEdit(e, true)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl font-bold transition-colors cursor-pointer shadow-xs"
+                    title="Salva as alterações e baixa imediatamente o arquivo JSON atualizado"
+                  >
+                    <Download className="w-4 h-4 text-blue-600" />
+                    <span>Salvar e Baixar JSON</span>
+                  </button>
+                  <button
+                    type="submit"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors cursor-pointer shadow-xs"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Salvar Alterações</span>
+                  </button>
+                </div>
               </div>
             </form>
           </div>

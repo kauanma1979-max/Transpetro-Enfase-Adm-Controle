@@ -22,6 +22,17 @@ import {
   TOTAL_HORAS_ESTUDO 
 } from './data/scheduleData';
 import { EDITAL_INFO } from './data/editalData';
+import { 
+  getDriveEndpoint, 
+  getDriveAutoSync, 
+  getDriveSyncValidated, 
+  fetchGoogleDriveDataViaJsonp, 
+  mergeTranspetroBackupData, 
+  savePreSyncSafetyBackup, 
+  setDriveSyncValidated, 
+  setLastDriveSyncDate 
+} from './utils/driveSync';
+import { generateBackupPayload, restoreFromRawData } from './utils/backupStorage';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -84,10 +95,21 @@ export default function App() {
   const [isCalculatorOpen, setIsCalculatorOpen] = useState<boolean>(false);
   const [calculatorFormula, setCalculatorFormula] = useState<string | undefined>(undefined);
   const [isBackupModalOpen, setIsBackupModalOpen] = useState<boolean>(false);
+  const [backupModalTab, setBackupModalTab] = useState<'drive' | 'file' | 'code'>('drive');
 
   const handleOpenCalculator = (formulaNome?: string) => {
     setCalculatorFormula(formulaNome);
     setIsCalculatorOpen(true);
+  };
+
+  const handleOpenBackupModal = (tab: 'drive' | 'file' | 'code' = 'file') => {
+    setBackupModalTab(tab);
+    setIsBackupModalOpen(true);
+  };
+
+  const handleOpenDriveSync = () => {
+    setBackupModalTab('drive');
+    setIsBackupModalOpen(true);
   };
 
   useEffect(() => {
@@ -106,12 +128,70 @@ export default function App() {
     } catch (e) { /* ignore */ }
   };
 
-  // Event listener to auto-sync when backup is imported
+  // Event listener to auto-sync when backup is imported or drive data is received
   useEffect(() => {
     window.addEventListener('transpetro_data_restored', handleDataRestored);
     return () => {
       window.removeEventListener('transpetro_data_restored', handleDataRestored);
     };
+  }, []);
+
+  // Listen to drive-json-loaded event and setup window.sincronizarGoogleDrive
+  useEffect(() => {
+    const handleDriveJsonLoaded = (e: any) => {
+      try {
+        const incomingData = e?.detail;
+        if (!incomingData || typeof incomingData !== 'object') return;
+
+        // 1. Save safety backup before merging
+        savePreSyncSafetyBackup();
+
+        // 2. Generate current local backup payload
+        const currentLocal = generateBackupPayload();
+
+        // 3. Perform safe intelligent merge
+        const merged = mergeTranspetroBackupData(currentLocal, incomingData);
+
+        // 4. Save merged data to localStorage
+        restoreFromRawData(merged);
+
+        // 5. Update state
+        setDriveSyncValidated(true);
+        setLastDriveSyncDate(new Date().toLocaleString('pt-BR'));
+        handleDataRestored();
+      } catch (err) {
+        console.error('Error integrating Google Drive data:', err);
+      }
+    };
+
+    (window as any).sincronizarGoogleDrive = () => {
+      const endpoint = getDriveEndpoint();
+      if (endpoint) {
+        return fetchGoogleDriveDataViaJsonp(endpoint);
+      }
+      return Promise.reject(new Error('Endpoint do Google Apps Script não configurado.'));
+    };
+
+    window.addEventListener('drive-json-loaded', handleDriveJsonLoaded);
+    return () => {
+      window.removeEventListener('drive-json-loaded', handleDriveJsonLoaded);
+    };
+  }, []);
+
+  // Auto-sync on open ONLY AFTER validation and if enabled
+  useEffect(() => {
+    const isAutoSync = getDriveAutoSync();
+    const isValidated = getDriveSyncValidated();
+    const endpoint = getDriveEndpoint();
+
+    if (isAutoSync && isValidated && endpoint && endpoint.startsWith('https://script.google.com/')) {
+      const timer = setTimeout(() => {
+        fetchGoogleDriveDataViaJsonp(endpoint).catch((err) => {
+          console.warn('Auto-sync notice:', err?.message);
+        });
+      }, 1200);
+      return () => clearTimeout(timer);
+    }
   }, []);
 
   const handleToggleDay = (dayId: string) => {
@@ -203,7 +283,8 @@ Gerado em: ${new Date().toLocaleString('pt-BR')}
         totalHours={totalHours}
         onResetProgress={handleResetProgress}
         onExportReport={handleExportReport}
-        onOpenBackupModal={() => setIsBackupModalOpen(true)}
+        onOpenBackupModal={() => handleOpenBackupModal('file')}
+        onOpenDriveSync={handleOpenDriveSync}
       />
 
       {/* Main Views Container */}
@@ -255,6 +336,7 @@ Gerado em: ${new Date().toLocaleString('pt-BR')}
         isOpen={isBackupModalOpen}
         onClose={() => setIsBackupModalOpen(false)}
         onDataRestored={handleDataRestored}
+        initialTab={backupModalTab}
       />
 
       {/* Formula Calculator Modal */}

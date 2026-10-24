@@ -16,7 +16,7 @@ import {
   Copy,
   Check,
   Code2,
-  FileText
+  Cloud
 } from 'lucide-react';
 import { 
   exportFullBackup, 
@@ -27,19 +27,22 @@ import {
   importBackupFromJsonString,
   copyBackupToClipboard 
 } from '../utils/backupStorage';
+import { DriveSyncPanel } from './DriveSyncPanel';
 
 interface BackupRestoreModalProps {
   isOpen: boolean;
   onClose: () => void;
   onDataRestored?: () => void;
+  initialTab?: 'drive' | 'file' | 'code';
 }
 
 export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
   isOpen,
   onClose,
-  onDataRestored
+  onDataRestored,
+  initialTab = 'drive'
 }) => {
-  const [activeMode, setActiveMode] = useState<'file' | 'code'>('file');
+  const [activeMode, setActiveMode] = useState<'drive' | 'file' | 'code'>(initialTab);
   const [stats, setStats] = useState<BackupStats>(getBackupStats());
   const [isImporting, setIsImporting] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -50,6 +53,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      setActiveMode(initialTab);
       const currentStats = getBackupStats();
       setStats(currentStats);
       setFeedback(null);
@@ -61,7 +65,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
         setPreviewJson('');
       }
     }
-  }, [isOpen]);
+  }, [isOpen, initialTab]);
 
   if (!isOpen) return null;
 
@@ -183,16 +187,16 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                Backup e Restauração de Dados
+                Backup e Sincronização em Nuvem
               </h3>
               <p className="text-xs text-slate-300">
-                Salve ou restaure todo o seu progresso de estudos em arquivo JSON ou texto direto
+                Sincronize com o Google Drive ou salve/restaure todo o seu progresso localmente
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -239,6 +243,17 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
           {/* Mode Switcher */}
           <div className="flex border-b border-slate-200">
             <button
+              onClick={() => setActiveMode('drive')}
+              className={`flex-1 py-2.5 text-xs font-bold border-b-2 flex items-center justify-center gap-2 transition cursor-pointer ${
+                activeMode === 'drive'
+                  ? 'border-blue-600 text-blue-700 bg-blue-50/50'
+                  : 'border-transparent text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <Cloud className="w-4 h-4 text-blue-600" />
+              <span>Google Drive (Nuvem)</span>
+            </button>
+            <button
               onClick={() => setActiveMode('file')}
               className={`flex-1 py-2.5 text-xs font-bold border-b-2 flex items-center justify-center gap-2 transition cursor-pointer ${
                 activeMode === 'file'
@@ -246,19 +261,19 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
-              <FileJson className="w-4 h-4" />
-              <span>Download & Upload de Arquivo</span>
+              <FileJson className="w-4 h-4 text-emerald-600" />
+              <span>Arquivo .JSON</span>
             </button>
             <button
               onClick={() => setActiveMode('code')}
               className={`flex-1 py-2.5 text-xs font-bold border-b-2 flex items-center justify-center gap-2 transition cursor-pointer ${
                 activeMode === 'code'
-                  ? 'border-blue-600 text-blue-700 bg-blue-50/50'
+                  ? 'border-purple-600 text-purple-700 bg-purple-50/50'
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
-              <Code2 className="w-4 h-4" />
-              <span>Copiar / Colar Código JSON</span>
+              <Code2 className="w-4 h-4 text-purple-600" />
+              <span>Código JSON</span>
             </button>
           </div>
 
@@ -278,7 +293,18 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
             </div>
           )}
 
-          {/* Mode 1: File based Backup / Restore */}
+          {/* Mode 1: Google Drive Sync */}
+          {activeMode === 'drive' && (
+            <DriveSyncPanel 
+              onSyncSuccess={() => {
+                setStats(getBackupStats());
+                setPreviewJson(getBackupJsonString());
+                if (onDataRestored) onDataRestored();
+              }}
+            />
+          )}
+
+          {/* Mode 2: File based Backup / Restore */}
           {activeMode === 'file' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Export Backup Box */}
@@ -349,7 +375,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
             </div>
           )}
 
-          {/* Mode 2: Raw JSON Text */}
+          {/* Mode 3: Raw JSON Text */}
           {activeMode === 'code' && (
             <div className="space-y-4">
               {/* Copy Current State */}

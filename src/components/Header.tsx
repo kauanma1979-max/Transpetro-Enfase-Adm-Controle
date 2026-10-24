@@ -6,7 +6,8 @@ import {
   RotateCcw,
   Database,
   Calendar,
-  Sparkles
+  Sparkles,
+  Cloud
 } from 'lucide-react';
 import { DATA_INICIO_ESTUDOS, DATA_ENCERRAMENTO_ESTUDOS } from '../data/scheduleData';
 
@@ -16,6 +17,7 @@ interface HeaderProps {
   onResetProgress: () => void;
   onExportReport: () => void;
   onOpenBackupModal: () => void;
+  onOpenDriveSync?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -23,7 +25,8 @@ export const Header: React.FC<HeaderProps> = ({
   totalHours,
   onResetProgress,
   onExportReport,
-  onOpenBackupModal
+  onOpenBackupModal,
+  onOpenDriveSync
 }) => {
   const [timeLeft, setTimeLeft] = useState<{
     days: number;
@@ -134,6 +137,17 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
 
             <div className="flex items-center gap-1.5 border-l border-slate-700/70 pl-3">
+              {/* Google Drive Cloud Sync Quick Button */}
+              <button
+                id="btn-open-drive-sync"
+                onClick={onOpenDriveSync || onOpenBackupModal}
+                title="Sincronizar dados com o Google Drive (Nuvem)"
+                className="px-2.5 py-1.5 rounded-lg bg-blue-600/30 hover:bg-blue-600 text-blue-300 hover:text-white transition-all text-xs flex items-center gap-1.5 font-bold border border-blue-500/40 shadow-xs cursor-pointer"
+              >
+                <Cloud className="w-3.5 h-3.5 text-blue-400 group-hover:text-white" />
+                <span className="hidden sm:inline">Drive Nuvem</span>
+              </button>
+
               {/* Backup & Restore Button */}
               <button
                 id="btn-open-backup-modal"
@@ -142,7 +156,8 @@ export const Header: React.FC<HeaderProps> = ({
                 className="px-3 py-1.5 rounded-lg bg-emerald-600/30 hover:bg-emerald-600 text-emerald-300 hover:text-white transition-all text-xs flex items-center gap-1.5 font-bold border border-emerald-500/40 shadow-xs cursor-pointer"
               >
                 <Database className="w-3.5 h-3.5 text-emerald-400 group-hover:text-white" />
-                <span>Backup / Restaurar</span>
+                <span className="hidden md:inline">Backup / Restaurar</span>
+                <span className="md:hidden">Backup</span>
               </button>
 
               <button

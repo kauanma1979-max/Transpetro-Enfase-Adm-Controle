@@ -9,6 +9,7 @@ export interface BackupDataPayload {
   exportDateFormatted: string;
   data: {
     completedDays: string[];
+    completedBlocks?: string[];
     errorNotebook: any[];
     verticalSyllabusProgress: Record<string, any>;
     customMaterials: Record<string, any>;
@@ -32,6 +33,7 @@ export interface BackupStats {
 
 export const STORAGE_KEYS = {
   COMPLETED_DAYS: 'transpetro_completed_days_v2',
+  COMPLETED_BLOCKS: 'transpetro_completed_blocks_v1',
   ERROR_NOTEBOOK: 'transpetro_caderno_erros',
   VERTICAL_SYLLABUS: 'transpetro_edital_verticalizado_progress_v2',
   CUSTOM_MATERIALS: 'transpetro_material_estudo_custom_v1',
@@ -127,6 +129,11 @@ export const generateBackupPayload = (): BackupDataPayload => {
   try {
     const days = localStorage.getItem(STORAGE_KEYS.COMPLETED_DAYS);
     if (days) payload.data.completedDays = JSON.parse(days);
+  } catch (e) { /* ignore */ }
+
+  try {
+    const blocks = localStorage.getItem(STORAGE_KEYS.COMPLETED_BLOCKS);
+    if (blocks) payload.data.completedBlocks = JSON.parse(blocks);
   } catch (e) { /* ignore */ }
 
   try {
@@ -231,6 +238,38 @@ export const exportFullBackup = (): void => {
   }, 1000);
 };
 
+export const exportErrorNotebookJson = (): void => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
+    const errors = raw ? JSON.parse(raw) : [];
+    const payload = {
+      app: 'Transpetro 2026.3 - Caderno de Erros',
+      exportTimestamp: new Date().toISOString(),
+      exportDateFormatted: new Date().toLocaleString('pt-BR'),
+      totalErrors: errors.length,
+      errors
+    };
+    const jsonStr = JSON.stringify(payload, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const downloadLink = document.createElement('a');
+    const now = new Date();
+    const dateSuffix = now.toISOString().slice(0, 10);
+    downloadLink.href = url;
+    downloadLink.setAttribute('download', `caderno_erros_transpetro_${dateSuffix}.json`);
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    setTimeout(() => {
+      try {
+        document.body.removeChild(downloadLink);
+        URL.revokeObjectURL(url);
+      } catch (e) { /* ignore */ }
+    }, 1000);
+  } catch (err) {
+    console.error('Failed to export error notebook json', err);
+  }
+};
+
 export const restoreFromRawData = (dataObj: any): { success: boolean; message: string; stats?: BackupStats } => {
   try {
     if (!dataObj || typeof dataObj !== 'object') {
@@ -241,6 +280,10 @@ export const restoreFromRawData = (dataObj: any): { success: boolean; message: s
 
     if (payload.completedDays && Array.isArray(payload.completedDays)) {
       localStorage.setItem(STORAGE_KEYS.COMPLETED_DAYS, JSON.stringify(payload.completedDays));
+    }
+
+    if (payload.completedBlocks && Array.isArray(payload.completedBlocks)) {
+      localStorage.setItem(STORAGE_KEYS.COMPLETED_BLOCKS, JSON.stringify(payload.completedBlocks));
     }
 
     if (payload.errorNotebook && Array.isArray(payload.errorNotebook)) {

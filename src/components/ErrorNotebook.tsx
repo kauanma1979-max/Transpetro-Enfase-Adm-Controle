@@ -370,31 +370,19 @@ export const ErrorNotebook: React.FC = () => {
   const totalProva = totalSimEspec + totalSimGerais;
   const totalProvaPct = Math.round((totalProva / 60) * 100);
 
-  // Helper to commit state changes immediately to storage and notify listeners
+  // Helper to commit state changes immediately to storage
   const saveErrorsImmediately = (newErrors: ErrorEntry[]) => {
     errorsRef.current = newErrors;
     setErrors(newErrors);
     try {
       localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(newErrors));
       localStorage.setItem('transpetro_caderno_erros_customized', 'true');
-      notifyDataUpdated(STORAGE_KEYS.ERROR_NOTEBOOK);
     } catch (e) {
       console.error('Error writing error notebook to storage', e);
     }
   };
 
-  // Guaranteed flush on window close or tab refresh
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      try {
-        localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(errorsRef.current));
-      } catch (e) { /* ignore */ }
-    };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
-
-  // Listen to external data restore (from JSON backup import or clipboard paste)
+  // Listen to external data restore (from JSON backup import or clipboard paste / Drive sync)
   useEffect(() => {
     const handleStorageRestore = (event: any) => {
       // If the event specifically targets another key, skip it
@@ -406,11 +394,8 @@ export const ErrorNotebook: React.FC = () => {
         if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            // Prevent re-rendering loop if data in storage is already identical to in-memory state
-            if (JSON.stringify(parsed) !== JSON.stringify(errorsRef.current)) {
-              errorsRef.current = parsed;
-              setErrors(parsed);
-            }
+            errorsRef.current = parsed;
+            setErrors(parsed);
           }
         }
       } catch (e) {
@@ -418,10 +403,8 @@ export const ErrorNotebook: React.FC = () => {
       }
     };
     window.addEventListener('transpetro_data_restored', handleStorageRestore);
-    window.addEventListener('transpetro_storage_changed', handleStorageRestore);
     return () => {
       window.removeEventListener('transpetro_data_restored', handleStorageRestore);
-      window.removeEventListener('transpetro_storage_changed', handleStorageRestore);
     };
   }, []);
 
@@ -1056,7 +1039,14 @@ export const ErrorNotebook: React.FC = () => {
               </div>
             )}
 
-            <form action="#" onSubmit={(e) => handleAddError(e, false)} className="space-y-4 text-xs">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleAddError(e, false);
+              }} 
+              className="space-y-4 text-xs"
+            >
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Caderno / Disciplina:</label>
                 <select
@@ -1157,7 +1147,11 @@ export const ErrorNotebook: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  onClick={(e) => handleAddError(e, true)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleAddError(e, true);
+                  }}
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl font-bold transition-colors cursor-pointer shadow-xs"
                   title="Salva o registro e baixa imediatamente o arquivo JSON atualizado"
                 >
@@ -1165,7 +1159,13 @@ export const ErrorNotebook: React.FC = () => {
                   <span>Salvar e Baixar JSON</span>
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  id="btn-confirm-save-error"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleAddError(e, false);
+                  }}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors cursor-pointer shadow-xs"
                 >
                   Salvar Registro no Caderno
@@ -1194,7 +1194,14 @@ export const ErrorNotebook: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveEdit} className="space-y-4 text-xs">
+            <form 
+              onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleSaveEdit(e, false);
+              }} 
+              className="space-y-4 text-xs"
+            >
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Caderno / Disciplina:</label>
                 <select
@@ -1265,7 +1272,11 @@ export const ErrorNotebook: React.FC = () => {
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={(e) => handleSaveEdit(e, true)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSaveEdit(e, true);
+                    }}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl font-bold transition-colors cursor-pointer shadow-xs"
                     title="Salva as alterações e baixa imediatamente o arquivo JSON atualizado"
                   >
@@ -1273,7 +1284,13 @@ export const ErrorNotebook: React.FC = () => {
                     <span>Salvar e Baixar JSON</span>
                   </button>
                   <button
-                    type="submit"
+                    type="button"
+                    id="btn-confirm-save-edit"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleSaveEdit(e, false);
+                    }}
                     className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold transition-colors cursor-pointer shadow-xs"
                   >
                     <Save className="w-4 h-4" />

@@ -45,7 +45,10 @@ export const STORAGE_KEYS = {
 export const notifyDataUpdated = (sourceKey?: string) => {
   try {
     window.dispatchEvent(new CustomEvent('transpetro_storage_changed', { detail: { key: sourceKey } }));
-    window.dispatchEvent(new CustomEvent('transpetro_data_restored', { detail: { key: sourceKey } }));
+    // Apenas dispara restauração geral se não for uma chave específica (ex: importação de backup completo)
+    if (!sourceKey) {
+      window.dispatchEvent(new CustomEvent('transpetro_data_restored', { detail: { key: sourceKey } }));
+    }
   } catch (e) {
     // ignore
   }
@@ -225,7 +228,7 @@ export const exportFullBackup = (): void => {
   const dateSuffix = now.toISOString().slice(0, 10);
   const timeSuffix = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
   downloadLink.href = url;
-  downloadLink.setAttribute('download', `backup_transpetro_2026_${dateSuffix}_${timeSuffix}.json`);
+  downloadLink.setAttribute('download', `backup_pareto_transpetro_${dateSuffix}_${timeSuffix}.json`);
   document.body.appendChild(downloadLink);
   downloadLink.click();
   

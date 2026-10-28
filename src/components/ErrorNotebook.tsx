@@ -327,6 +327,13 @@ export const ErrorNotebook: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
   const [editingError, setEditingError] = useState<ErrorEntry | null>(null);
   const [saveToast, setSaveToast] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Keep a ref to current errors to avoid redundant re-renders and stale listener closures
+  const errorsRef = React.useRef<ErrorEntry[]>(errors);
+  useEffect(() => {
+    errorsRef.current = errors;
+  }, [errors]);
 
   // Form State
   const [formData, setFormData] = useState<{
@@ -365,6 +372,7 @@ export const ErrorNotebook: React.FC = () => {
 
   // Helper to commit state changes immediately to storage and notify listeners
   const saveErrorsImmediately = (newErrors: ErrorEntry[]) => {
+    errorsRef.current = newErrors;
     setErrors(newErrors);
     try {
       localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(newErrors));
@@ -375,35 +383,34 @@ export const ErrorNotebook: React.FC = () => {
     }
   };
 
-  // Redundant fallback sync
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(errors));
-    } catch (e) {
-      console.error('Error saving error notebook', e);
-    }
-  }, [errors]);
-
   // Guaranteed flush on window close or tab refresh
   useEffect(() => {
     const handleBeforeUnload = () => {
       try {
-        localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(errors));
+        localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(errorsRef.current));
       } catch (e) { /* ignore */ }
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [errors]);
+  }, []);
 
   // Listen to external data restore (from JSON backup import or clipboard paste)
   useEffect(() => {
-    const handleStorageRestore = () => {
+    const handleStorageRestore = (event: any) => {
+      // If the event specifically targets another key, skip it
+      if (event?.detail?.key && event.detail.key !== STORAGE_KEYS.ERROR_NOTEBOOK) {
+        return;
+      }
       try {
         const saved = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
-            setErrors(parsed);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            // Prevent re-rendering loop if data in storage is already identical to in-memory state
+            if (JSON.stringify(parsed) !== JSON.stringify(errorsRef.current)) {
+              errorsRef.current = parsed;
+              setErrors(parsed);
+            }
           }
         }
       } catch (e) {
@@ -418,24 +425,38 @@ export const ErrorNotebook: React.FC = () => {
     };
   }, []);
 
-  const handleAddError = (e: React.FormEvent, downloadJson = false) => {
-    e.preventDefault();
-    if (!formData.subtopico || !formData.regraCorreta) return;
+  const handleAddError = (e?: React.FormEvent | React.MouseEvent, downloadJson = false) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
+    const subtopicoTrimmed = (formData.subtopico || '').trim();
+    const regraCorretaTrimmed = (formData.regraCorreta || '').trim();
+    const motivoErroTrimmed = (formData.motivoErro || '').trim();
+
+    if (!subtopicoTrimmed || !regraCorretaTrimmed) {
+      setFormError('Por favor, preencha o Subtópico Exato e a Regra Correta para registrar o erro.');
+      return;
+    }
+
+    setFormError(null);
     const todayStr = new Date().toLocaleDateString('pt-BR');
     const newEntry: ErrorEntry = {
-      id: `err-${Date.now()}`,
+      id: `err-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       data: todayStr,
-      disciplina: formData.disciplina,
-      subtopico: formData.subtopico,
-      enunciadoResumido: formData.enunciadoResumido,
-      motivoErro: formData.motivoErro,
-      regraCorreta: formData.regraCorreta,
+      disciplina: formData.disciplina || 'Língua Portuguesa',
+      subtopico: subtopicoTrimmed,
+      enunciadoResumido: (formData.enunciadoResumido || '').trim(),
+      motivoErro: motivoErroTrimmed || 'Revisar conceito e pegadinhas da banca',
+      regraCorreta: regraCorretaTrimmed,
       revisado: false
     };
 
-    const updated = [newEntry, ...errors];
+    const updated = [newEntry, ...errorsRef.current];
     saveErrorsImmediately(updated);
+
+    // Limpa formulário
     setFormData({
       disciplina: formData.disciplina,
       subtopico: '',
@@ -443,9 +464,15 @@ export const ErrorNotebook: React.FC = () => {
       motivoErro: '',
       regraCorreta: ''
     });
+
+    // Fecha o modal
     setShowAddModal(false);
-    setSaveToast('Novo erro gravado com sucesso no Caderno & Armazenamento!');
-    setTimeout(() => setSaveToast(null), 3000);
+
+    // Ajusta o filtro para "todas" para o novo erro ser imediatamente visível
+    setFilterDisc('todas');
+
+    setSaveToast(`Novo erro registrado com sucesso no Caderno de ${newEntry.disciplina}!`);
+    setTimeout(() => setSaveToast(null), 4000);
 
     if (downloadJson) {
       exportErrorNotebookJson();
@@ -453,6 +480,7 @@ export const ErrorNotebook: React.FC = () => {
   };
 
   const handleOpenAddForDiscipline = (disciplinaNome: string, subtopicoInicial = '') => {
+    setFormError(null);
     setFormData({
       disciplina: disciplinaNome,
       subtopico: subtopicoInicial,
@@ -463,14 +491,17 @@ export const ErrorNotebook: React.FC = () => {
     setShowAddModal(true);
   };
 
-  const handleSaveEdit = (e: React.FormEvent, downloadJson = false) => {
-    e.preventDefault();
+  const handleSaveEdit = (e?: React.FormEvent | React.MouseEvent, downloadJson = false) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     if (!editingError) return;
 
-    const updated = errors.map(err => err.id === editingError.id ? editingError : err);
+    const updated = errorsRef.current.map(err => err.id === editingError.id ? editingError : err);
     saveErrorsImmediately(updated);
     setEditingError(null);
-    setSaveToast('Alterações salvas com sucesso no Caderno & Armazenamento!');
+    setSaveToast('Alterações salvas com sucesso no Caderno!');
     setTimeout(() => setSaveToast(null), 3000);
 
     if (downloadJson) {
@@ -1003,12 +1034,29 @@ export const ErrorNotebook: React.FC = () => {
       {showAddModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-emerald-600" />
-              Novo Registro no Caderno de Erros
-            </h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-emerald-600" />
+                Novo Registro no Caderno de Erros
+              </h3>
+              <button
+                type="button"
+                onClick={() => { setShowAddModal(false); setFormError(null); }}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer transition-colors"
+                title="Fechar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            <form onSubmit={handleAddError} className="space-y-4 text-xs">
+            {formError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-semibold flex items-center gap-2 mb-3">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span>{formError}</span>
+              </div>
+            )}
+
+            <form action="#" onSubmit={(e) => handleAddError(e, false)} className="space-y-4 text-xs">
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Caderno / Disciplina:</label>
                 <select
@@ -1035,7 +1083,10 @@ export const ErrorNotebook: React.FC = () => {
                   required
                   placeholder="Ex: Crase — Diante de Pronomes de Tratamento"
                   value={formData.subtopico}
-                  onChange={(e) => setFormData({ ...formData, subtopico: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, subtopico: e.target.value });
+                    if (formError) setFormError(null);
+                  }}
                   className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500 mb-1.5"
                 />
 
@@ -1046,7 +1097,10 @@ export const ErrorNotebook: React.FC = () => {
                       <button
                         key={idx}
                         type="button"
-                        onClick={() => setFormData({ ...formData, subtopico: top })}
+                        onClick={() => {
+                          setFormData({ ...formData, subtopico: top });
+                          if (formError) setFormError(null);
+                        }}
                         className="text-[10px] px-2 py-0.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded cursor-pointer border border-slate-200/70"
                       >
                         {top.split('—')[0].trim()}
@@ -1071,7 +1125,6 @@ export const ErrorNotebook: React.FC = () => {
                 <label className="block font-bold text-red-700 mb-1">Por que errei? (Causa raiz do erro):</label>
                 <input
                   type="text"
-                  required
                   placeholder="Ex: Confundi os limites de dispensa ou achei que pronome pessoal aceitava crase..."
                   value={formData.motivoErro}
                   onChange={(e) => setFormData({ ...formData, motivoErro: e.target.value })}
@@ -1086,7 +1139,10 @@ export const ErrorNotebook: React.FC = () => {
                   rows={3}
                   placeholder="Ex: Diante de pronome pessoal não ocorre crase porque não há artigo feminino definido. Troque por palavra masculina com 'ao' para testar..."
                   value={formData.regraCorreta}
-                  onChange={(e) => setFormData({ ...formData, regraCorreta: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, regraCorreta: e.target.value });
+                    if (formError) setFormError(null);
+                  }}
                   className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
@@ -1094,7 +1150,7 @@ export const ErrorNotebook: React.FC = () => {
               <div className="flex flex-wrap items-center justify-end gap-2 pt-4 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => { setShowAddModal(false); setFormError(null); }}
                   className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors cursor-pointer"
                 >
                   Cancelar

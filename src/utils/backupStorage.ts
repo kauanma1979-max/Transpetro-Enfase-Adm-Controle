@@ -228,7 +228,7 @@ export const exportFullBackup = (): void => {
   const dateSuffix = now.toISOString().slice(0, 10);
   const timeSuffix = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
   downloadLink.href = url;
-  downloadLink.setAttribute('download', `backup_pareto_transpetro_${dateSuffix}_${timeSuffix}.json`);
+  downloadLink.setAttribute('download', `PLATAFORMA TRANSPETRO_${dateSuffix}_${timeSuffix}.json`);
   document.body.appendChild(downloadLink);
   downloadLink.click();
   

@@ -16,8 +16,9 @@ export const STORAGE_KEY_DRIVE_VALIDATED = 'google_drive_sync_validated_v1';
 export const STORAGE_KEY_DRIVE_LAST_SYNC = 'google_drive_last_sync_date_v1';
 export const STORAGE_KEY_DRIVE_SAFETY_BACKUP = 'transpetro_pre_drive_sync_safety_backup_v1';
 
-export const GOOGLE_DRIVE_DEFAULT_FILE_PREFIX = 'backup_pareto_transpetro';
-export const GOOGLE_DRIVE_ALT_FILE_PREFIX = 'PLATAFORMA TRANSPETRO';
+export const GOOGLE_DRIVE_DEFAULT_FILE_PREFIX = 'PLATAFORMA TRANSPETRO';
+export const GOOGLE_DRIVE_ALT_FILE_PREFIX = 'PLATAFORMA_TRANSPETRO';
+export const GOOGLE_DRIVE_LEGACY_FILE_PREFIX = 'backup_pareto_transpetro';
 
 /**
  * Normalizes Google Apps Script URL to always point to the public web app /exec endpoint.
@@ -419,91 +420,132 @@ export function fetchGoogleDriveDataViaJsonp(
 
 /**
  * Returns the exact Google Apps Script code to copy and paste,
- * preconfigured with the prefix "PLATAFORMA TRANSPETRO" as requested.
+ * preconfigured to search for files beginning with "PLATAFORMA TRANSPETRO"
+ * (or "PLATAFORMA_TRANSPETRO" / legacy backups), ignoring dates and times,
+ * and selecting the most recently updated file in Google Drive.
  */
 export function getGoogleAppsScriptTemplate(prefix: string = GOOGLE_DRIVE_DEFAULT_FILE_PREFIX): string {
   return `// ============================================================================
 // Google Apps Script — Sincronização Google Drive para o App Transpetro
-// Nome do Arquivo no Drive: "${prefix}" (ex: "${prefix}.json", "${prefix}_backup.json")
+// Arquivo no Drive: Inicia com "${prefix}" (ex: "${prefix}.json", "${prefix}_2026-10-31.json")
 // ============================================================================
 //
-// ⚠️ IMPORTANTE - CONFIGURAÇÃO DE IMPLANTAÇÃO (MUITO FÁCIL):
-// 1. Acesse https://script.google.com e abra seu projeto.
-// 2. Cole este código no arquivo Código.gs e salve (Ctrl+S ou ícone de disquete).
-// 3. Clique no botão azul "Implantar" (canto superior direito) > "Nova implantação".
-// 4. Selecione:
-//    - Tipo (ícone de engrenagem): "Aplicativo da Web"
-//    - Descrição: "Sincronizador Transpetro"
-//    - Executar como: "Eu" (seu e-mail)
-//    - QUEM TEM ACESSO: "Qualquer pessoa" (OBRIGATÓRIO: se deixar 'Somente eu', o app é bloqueado!)
-// 5. Clique em "Implantar" e copie a URL do Aplicativo da Web gerada (ela termina em /exec).
-// 6. Cole a URL no app Transpetro.
+// ⚠️ PASSO A PASSO PARA IMPLANTAR (MUITO FÁCIL):
+// 1. Acesse https://script.google.com e abra seu projeto (ou clique em "Novo projeto").
+// 2. Apague qualquer código existente no arquivo Código.gs e COLE este código inteiro.
+// 3. Salve o arquivo (Ctrl+S ou ícone de disquete 💾).
+// 4. Clique no botão azul "Implantar" (canto superior direito) > "Nova implantação".
+// 5. Na janela de implantação, clique na engrenagem (⚙️) ao lado de 'Selecionar tipo' e escolha:
+//    - Tipo: "Aplicativo da Web"
+//    - Descrição: "Sincronizador Plataforma Transpetro"
+//    - Executar como: "Eu" (seu e-mail do Google)
+//    - QUEM TEM ACESSO: "Qualquer pessoa" (OBRIGATÓRIO: se deixar 'Somente eu', o app não consegue ler!)
+// 6. Clique em "Implantar", autorize o acesso à sua conta Google e copie a URL gerada (ela termina em /exec).
+// 7. Cole a URL no aplicativo da Transpetro e clique em "Atualizar dados do Google Drive".
+// ============================================================================
 
 function doGet(e) {
-  // Prefixo base: ignora qualquer data, horário ou extensão posterior (ex: backup_pareto_transpetro_2026-10-22.json)
-  var prefix = "${prefix}";
+  // Prefixo principal configurado:
+  var primaryPrefix = "${prefix}"; // "PLATAFORMA TRANSPETRO"
   var matchingFiles = [];
+  var seenIds = {};
 
-  function checkAndAdd(file) {
+  function normalize(str) {
+    if (!str) return "";
+    return str.toLowerCase().replace(/[\\s_\\-]/g, "");
+  }
+
+  var normPrimary = normalize(primaryPrefix);       // "plataformatranspetro"
+  var normLegacy = normalize("backup_pareto_transpetro"); // "backupparetotranspetro"
+
+  function registerFile(file) {
     if (!file || file.isTrashed()) return;
-    var name = file.getName().toLowerCase();
-    var p = prefix.toLowerCase();
-    // Prioriza se o nome começar exatamente com o prefixo
-    if (name.indexOf(p) === 0 || name.indexOf("transpetro") !== -1 || name.indexOf("plataforma") !== -1) {
+    var fileId = file.getId();
+    if (seenIds[fileId]) return;
+    seenIds[fileId] = true;
+
+    var rawName = file.getName();
+    var normName = normalize(rawName);
+    var lowerName = rawName.toLowerCase();
+
+    // Verifica se começa com PLATAFORMA TRANSPETRO (com espaço, traço ou underline)
+    var isDirectMatch = normName.indexOf(normPrimary) === 0;
+    var isLegacyMatch = normName.indexOf(normLegacy) === 0;
+    var isFallbackMatch = !isDirectMatch && !isLegacyMatch && (
+      lowerName.indexOf("transpetro") !== -1 && 
+      (lowerName.indexOf("plataforma") !== -1 || lowerName.indexOf("backup") !== -1) &&
+      lowerName.indexOf(".json") !== -1
+    );
+
+    if (isDirectMatch || isLegacyMatch || isFallbackMatch) {
       matchingFiles.push({
         file: file,
-        name: file.getName(),
-        isDirectMatch: name.indexOf(p) === 0,
+        name: rawName,
+        isDirectMatch: isDirectMatch,
+        isLegacyMatch: isLegacyMatch,
         updated: file.getLastUpdated().getTime()
       });
     }
   }
 
-  // 1. Busca por título contendo o prefixo no Google Drive (ignora lixeira)
-  try {
-    var searchIterator = DriveApp.searchFiles("title contains '" + prefix + "' and trashed = false");
-    while (searchIterator.hasNext()) {
-      checkAndAdd(searchIterator.next());
-    }
-  } catch (err1) {}
+  // 1. Busca abrangente por termos no Google Drive (ignora lixeira)
+  var queries = [
+    "title contains 'PLATAFORMA' and trashed = false",
+    "title contains 'TRANSPETRO' and trashed = false",
+    "title contains 'backup_pareto' and trashed = false"
+  ];
 
-  // 2. Fallback caso a indexação de busca do Drive demore: varre os arquivos recentes
-  if (matchingFiles.length === 0) {
+  for (var i = 0; i < queries.length; i++) {
     try {
-      var allFiles = DriveApp.getFiles();
+      var it = DriveApp.searchFiles(queries[i]);
       var count = 0;
-      while (allFiles.hasNext() && count < 300) {
-        var f = allFiles.next();
+      while (it.hasNext() && count < 60) {
+        registerFile(it.next());
         count++;
-        checkAndAdd(f);
       }
-    } catch (err2) {}
+    } catch (errSearch) {}
   }
 
+  // 2. Fallback caso a indexação do Drive demore: verifica arquivos recentes na raiz
+  if (matchingFiles.length === 0) {
+    try {
+      var recentFiles = DriveApp.getFiles();
+      var scanCount = 0;
+      while (recentFiles.hasNext() && scanCount < 300) {
+        registerFile(recentFiles.next());
+        scanCount++;
+      }
+    } catch (errFallback) {}
+  }
+
+  // Se nenhum arquivo foi encontrado
   if (matchingFiles.length === 0) {
     return outputResponse(e, {
-      error: "Nenhum arquivo iniciando com '" + prefix + "' foi encontrado no seu Google Drive (ex: " + prefix + "_2026-10-22.json). Salve o arquivo no Drive e tente novamente."
+      error: "Nenhum arquivo iniciando com '" + primaryPrefix + "' foi encontrado no seu Google Drive (ex: " + primaryPrefix + ".json ou " + primaryPrefix + "_2026-10-31.json). Salve o arquivo no Drive e tente novamente."
     });
   }
 
   // 3. Ordenação inteligente:
-  // Primeiro prioriza quem realmente começa com 'backup_pareto_transpetro',
-  // e seleciona automaticamente o mais recente (maior data de modificação).
+  // - Prioriza quem começa exatamente com PLATAFORMA TRANSPETRO
+  // - Depois quem começa com o formato de backup anterior
+  // - Desempata pelo mais recente (maior data de modificação / timestamp)
   matchingFiles.sort(function(a, b) {
     if (a.isDirectMatch && !b.isDirectMatch) return -1;
     if (!a.isDirectMatch && b.isDirectMatch) return 1;
+    if (a.isLegacyMatch && !b.isLegacyMatch) return -1;
+    if (!a.isLegacyMatch && b.isLegacyMatch) return 1;
     return b.updated - a.updated;
   });
 
-  var latestFile = matchingFiles[0].file;
-  
+  var selectedFile = matchingFiles[0].file;
+
   try {
-    var content = latestFile.getBlob().getDataAsString();
-    var parsed = JSON.parse(content);
-    return outputResponse(e, parsed);
-  } catch (parseErr) {
+    var rawText = selectedFile.getBlob().getDataAsString("UTF-8");
+    var parsedJson = JSON.parse(rawText);
+    return outputResponse(e, parsedJson);
+  } catch (parseError) {
     return outputResponse(e, {
-      error: "Arquivo '" + latestFile.getName() + "' encontrado, mas o conteúdo não é um JSON válido: " + parseErr.message
+      error: "Arquivo '" + selectedFile.getName() + "' encontrado no Google Drive, mas o conteúdo não é um JSON válido: " + parseError.message
     });
   }
 }

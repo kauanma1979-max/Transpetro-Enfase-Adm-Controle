@@ -176,22 +176,57 @@ export function mergeTranspetroBackupData(
   const remoteBlocks: string[] = Array.isArray(remoteData.completedBlocks) ? remoteData.completedBlocks : [];
   const mergedBlocks = Array.from(new Set([...localBlocks, ...remoteBlocks])).filter(b => typeof b === 'string' && b.trim().length > 0);
 
-  // 3. Error Notebook deduplication
-  const localErrors: any[] = Array.isArray(local.data?.errorNotebook) ? local.data.errorNotebook : [];
-  const remoteErrors: any[] = Array.isArray(remoteData.errorNotebook) ? remoteData.errorNotebook : [];
+  // 3. Error Notebook deduplication & preservation
+  let localErrors: any[] = Array.isArray(local.data?.errorNotebook) ? local.data.errorNotebook : [];
+  if (localErrors.length === 0) {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) localErrors = parsed;
+      }
+    } catch (e) {}
+  }
+
+  let remoteErrors: any[] = [];
+  if (Array.isArray(remoteRaw)) {
+    remoteErrors = remoteRaw;
+  } else if (Array.isArray(remoteData.errorNotebook)) {
+    remoteErrors = remoteData.errorNotebook;
+  } else if (Array.isArray(remoteData.errors)) {
+    remoteErrors = remoteData.errors;
+  } else if (Array.isArray(remoteRaw.errorNotebook)) {
+    remoteErrors = remoteRaw.errorNotebook;
+  } else if (Array.isArray(remoteRaw.errors)) {
+    remoteErrors = remoteRaw.errors;
+  } else if (Array.isArray(remoteData.cadernoErros)) {
+    remoteErrors = remoteData.cadernoErros;
+  } else if (Array.isArray(remoteRaw.cadernoErros)) {
+    remoteErrors = remoteRaw.cadernoErros;
+  }
+
   const errorMap = new Map<string, any>();
+  const getErrKey = (item: any): string => {
+    if (!item) return '';
+    if (item.id && String(item.id).trim()) return `id_${String(item.id).trim()}`;
+    const sub = (item.subtopico || '').trim().toLowerCase();
+    const regra = (item.regraCorreta || '').trim().toLowerCase();
+    const motivo = (item.motivoErro || '').trim().toLowerCase();
+    const enunc = (item.enunciadoResumido || item.enunciado || '').trim().toLowerCase();
+    return `content_${sub}_${(regra || motivo || enunc).slice(0, 40)}`;
+  };
 
   // Add remote first
   remoteErrors.forEach(item => {
     if (!item) return;
-    const key = String(item.id || item.timestamp || item.enunciado || item.pergunta || JSON.stringify(item));
-    errorMap.set(key, item);
+    const key = getErrKey(item);
+    if (key) errorMap.set(key, item);
   });
-  // Add local (so local edits take precedence while remote items are preserved)
+  // Add local so local items take precedence and new local additions are never dropped
   localErrors.forEach(item => {
     if (!item) return;
-    const key = String(item.id || item.timestamp || item.enunciado || item.pergunta || JSON.stringify(item));
-    errorMap.set(key, item);
+    const key = getErrKey(item);
+    if (key) errorMap.set(key, item);
   });
   const mergedErrorNotebook = Array.from(errorMap.values());
 
@@ -298,6 +333,7 @@ export function mergeTranspetroBackupData(
       completedDays: mergedDays,
       completedBlocks: mergedBlocks,
       errorNotebook: mergedErrorNotebook,
+      errors: mergedErrorNotebook,
       verticalSyllabusProgress: mergedVerticalProgress,
       customMaterials: mergedCustomMaterials,
       materialLinks: mergedMaterialLinks,
@@ -472,8 +508,8 @@ function doGet(e) {
     var isDirectMatch = normName.indexOf(normPrimary) === 0;
     var isLegacyMatch = normName.indexOf(normLegacy) === 0;
     var isFallbackMatch = !isDirectMatch && !isLegacyMatch && (
-      lowerName.indexOf("transpetro") !== -1 && 
-      (lowerName.indexOf("plataforma") !== -1 || lowerName.indexOf("backup") !== -1) &&
+      (lowerName.indexOf("transpetro") !== -1 || lowerName.indexOf("caderno") !== -1) && 
+      (lowerName.indexOf("plataforma") !== -1 || lowerName.indexOf("backup") !== -1 || lowerName.indexOf("caderno") !== -1 || lowerName.indexOf("erro") !== -1) &&
       lowerName.indexOf(".json") !== -1
     );
 
@@ -492,6 +528,7 @@ function doGet(e) {
   var queries = [
     "title contains 'PLATAFORMA' and trashed = false",
     "title contains 'TRANSPETRO' and trashed = false",
+    "title contains 'caderno' and trashed = false",
     "title contains 'backup_pareto' and trashed = false"
   ];
 

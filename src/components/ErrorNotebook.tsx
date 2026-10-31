@@ -598,19 +598,10 @@ export const ErrorNotebook: React.FC = () => {
               id="btn-error-backup-json"
               onClick={() => exportFullBackup()}
               className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-              title="Baixar backup completo de todos os erros e dados do app em JSON"
+              title="Baixar backup único completo (PLATAFORMA TRANSPETRO.json) reunindo todas as matérias, anotações e erros"
             >
               <Database className="w-3.5 h-3.5" />
-              <span>Salvar Backup JSON Geral</span>
-            </button>
-            <button
-              id="btn-export-notebook-json"
-              onClick={() => exportErrorNotebookJson()}
-              className="px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-850 border border-blue-200 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-              title="Baixar arquivo JSON com todos os erros de todas as matérias"
-            >
-              <Download className="w-3.5 h-3.5 text-blue-600" />
-              <span>Baixar JSON dos Cadernos</span>
+              <span>Baixar Backup Completo (.JSON)</span>
             </button>
             <button
               id="btn-export-csv-errors"
@@ -1153,10 +1144,10 @@ export const ErrorNotebook: React.FC = () => {
                     handleAddError(e, true);
                   }}
                   className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl font-bold transition-colors cursor-pointer shadow-xs"
-                  title="Salva o registro e baixa imediatamente o arquivo JSON atualizado"
+                  title="Salva o registro e baixa o arquivo completo PLATAFORMA TRANSPETRO.json"
                 >
                   <Download className="w-4 h-4 text-blue-600" />
-                  <span>Salvar e Baixar JSON</span>
+                  <span>Salvar e Baixar Backup (JSON)</span>
                 </button>
                 <button
                   type="button"
@@ -1278,10 +1269,10 @@ export const ErrorNotebook: React.FC = () => {
                       handleSaveEdit(e, true);
                     }}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-50 hover:bg-blue-100 text-blue-800 border border-blue-200 rounded-xl font-bold transition-colors cursor-pointer shadow-xs"
-                    title="Salva as alterações e baixa imediatamente o arquivo JSON atualizado"
+                    title="Salva as alterações e baixa o arquivo completo PLATAFORMA TRANSPETRO.json"
                   >
                     <Download className="w-4 h-4 text-blue-600" />
-                    <span>Salvar e Baixar JSON</span>
+                    <span>Salvar e Baixar Backup (JSON)</span>
                   </button>
                   <button
                     type="button"

@@ -217,6 +217,8 @@ export const copyBackupToClipboard = async (): Promise<boolean> => {
   }
 };
 
+export const BACKUP_FILE_NAME = 'PLATAFORMA TRANSPETRO.json';
+
 export const exportFullBackup = (): void => {
   const payload = generateBackupPayload();
   const jsonStr = JSON.stringify(payload, null, 2);
@@ -224,11 +226,8 @@ export const exportFullBackup = (): void => {
   const url = URL.createObjectURL(blob);
   const downloadLink = document.createElement('a');
   
-  const now = new Date();
-  const dateSuffix = now.toISOString().slice(0, 10);
-  const timeSuffix = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
   downloadLink.href = url;
-  downloadLink.setAttribute('download', `backup_pareto_transpetro_${dateSuffix}_${timeSuffix}.json`);
+  downloadLink.setAttribute('download', BACKUP_FILE_NAME);
   document.body.appendChild(downloadLink);
   downloadLink.click();
   
@@ -241,36 +240,12 @@ export const exportFullBackup = (): void => {
   }, 1000);
 };
 
+/**
+ * Conforme solicitação do usuário: Apenas um backup de JSON com todas as informações.
+ * Redireciona qualquer exportação de caderno de erros para o backup completo unificado.
+ */
 export const exportErrorNotebookJson = (): void => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
-    const errors = raw ? JSON.parse(raw) : [];
-    const payload = {
-      app: 'Transpetro 2026.3 - Caderno de Erros',
-      exportTimestamp: new Date().toISOString(),
-      exportDateFormatted: new Date().toLocaleString('pt-BR'),
-      totalErrors: errors.length,
-      errors
-    };
-    const jsonStr = JSON.stringify(payload, null, 2);
-    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const downloadLink = document.createElement('a');
-    const now = new Date();
-    const dateSuffix = now.toISOString().slice(0, 10);
-    downloadLink.href = url;
-    downloadLink.setAttribute('download', `caderno_erros_transpetro_${dateSuffix}.json`);
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    setTimeout(() => {
-      try {
-        document.body.removeChild(downloadLink);
-        URL.revokeObjectURL(url);
-      } catch (e) { /* ignore */ }
-    }, 1000);
-  } catch (err) {
-    console.error('Failed to export error notebook json', err);
-  }
+  exportFullBackup();
 };
 
 export const restoreFromRawData = (dataObj: any): { success: boolean; message: string; stats?: BackupStats } => {

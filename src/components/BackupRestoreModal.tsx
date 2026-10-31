@@ -74,7 +74,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
       exportFullBackup();
       setFeedback({
         type: 'success',
-        message: 'Arquivo de backup baixado com sucesso! Seu arquivo JSON está salvo no seu computador/celular.'
+        message: 'Arquivo "PLATAFORMA TRANSPETRO.json" baixado com sucesso! Contém todas as informações do seu estudo.'
       });
       setStats(getBackupStats());
     } catch (e: any) {
@@ -313,9 +313,9 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
                   <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
                     <Download className="w-5 h-5" />
                   </div>
-                  <h4 className="text-sm font-bold text-slate-900">1. Baixar Arquivo (.JSON)</h4>
+                  <h4 className="text-sm font-bold text-slate-900">1. Baixar Arquivo Único (.JSON)</h4>
                   <p className="text-xs text-slate-600 leading-relaxed">
-                    Gera e faz o download automático de um arquivo <strong>.json</strong> completo com todos os seus dados.
+                    Gera e faz o download automático do arquivo <strong>PLATAFORMA TRANSPETRO.json</strong> com 100% de todas as suas informações reunidas.
                   </p>
                 </div>
                 <div className="space-y-2 pt-2">
@@ -325,7 +325,7 @@ export const BackupRestoreModal: React.FC<BackupRestoreModalProps> = ({
                     className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition cursor-pointer"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Baixar Arquivo JSON</span>
+                    <span>Baixar PLATAFORMA TRANSPETRO.json</span>
                   </button>
                   <button
                     onClick={handleCopyClipboard}

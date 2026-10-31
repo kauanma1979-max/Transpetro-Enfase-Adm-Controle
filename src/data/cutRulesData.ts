@@ -133,7 +133,7 @@ export const REGRAS_DE_CORTE: CutRuleItem[] = [
 
 export const TRADE_OFF_EXPLICITO = {
   titulo: 'O Trade-off Central do Método Pareto Recursivo',
-  premissa: 'Com a rotina diária de 3h/dia (7 dias/semana · foco líquido até a véspera e prova em 06/12/2026), o objetivo não é ler livros acadêmicos intermináveis, mas sim dominar com profundidade máxima o que realmente cai na Fundação Cesgranrio.',
+  premissa: 'Com a rotina diária de 3h/dia (7 dias/semana · 288h de estudo líquido até o encerramento em 28/11/2026 e prova em 29/11/2026), o objetivo não é ler livros acadêmicos intermináveis, mas sim dominar com profundidade máxima o que realmente cai na Fundação Cesgranrio.',
   decisaoEstrategica: 'O plano corta tópicos de baixa relevância e foca nas matérias de peso 100% decisivo, liberando dezenas de horas para você dominar com maestria absoluta os tópicos nucleares que respondem por mais de 80% das 40 questões de Conhecimentos Específicos.',
   ganhoEstimado: 'Ganho líquido de +8 a 12 questões garantidas na prova objetiva, com perda estimada de no máximo 1 a 2 questões residuais nos cortes.',
   regraDeOuro: 'Lembre-se: O edital estabelece no item 7.1.2 "d" c/c 7.1.4.2.1 que a nota de habilitação é 100% definida pela Prova de Específicos. Quem domina Específicos entra na lista dos aprovados!'

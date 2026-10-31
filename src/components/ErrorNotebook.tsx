@@ -316,10 +316,6 @@ export const ErrorNotebook: React.FC = () => {
           return parsed;
         }
       }
-      // Se não havia nada gravado ainda, inicializa no localStorage para ficar disponível no JSON
-      try {
-        localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(INITIAL_SAMPLE_ERRORS));
-      } catch (e) {}
     } catch (e) {
       console.error('Error loading error notebook from storage', e);
     }
@@ -381,7 +377,6 @@ export const ErrorNotebook: React.FC = () => {
     try {
       localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(newErrors));
       localStorage.setItem('transpetro_caderno_erros_customized', 'true');
-      notifyDataUpdated(STORAGE_KEYS.ERROR_NOTEBOOK);
     } catch (e) {
       console.error('Error writing error notebook to storage', e);
     }
@@ -398,7 +393,7 @@ export const ErrorNotebook: React.FC = () => {
         const saved = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
         if (saved) {
           const parsed = JSON.parse(saved);
-          if (Array.isArray(parsed)) {
+          if (Array.isArray(parsed) && parsed.length > 0) {
             errorsRef.current = parsed;
             setErrors(parsed);
           }
@@ -408,10 +403,8 @@ export const ErrorNotebook: React.FC = () => {
       }
     };
     window.addEventListener('transpetro_data_restored', handleStorageRestore);
-    window.addEventListener('transpetro_storage_changed', handleStorageRestore);
     return () => {
       window.removeEventListener('transpetro_data_restored', handleStorageRestore);
-      window.removeEventListener('transpetro_storage_changed', handleStorageRestore);
     };
   }, []);
 
@@ -443,19 +436,7 @@ export const ErrorNotebook: React.FC = () => {
       revisado: false
     };
 
-    // Lê os dados mais recentes do localStorage para garantir união sem perda
-    let currentErrors = errorsRef.current;
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          currentErrors = parsed;
-        }
-      }
-    } catch (errStored) {}
-
-    const updated = [newEntry, ...currentErrors.filter(err => err.id !== newEntry.id)];
+    const updated = [newEntry, ...errorsRef.current];
     saveErrorsImmediately(updated);
 
     // Limpa formulário
@@ -500,16 +481,7 @@ export const ErrorNotebook: React.FC = () => {
     }
     if (!editingError) return;
 
-    let currentErrors = errorsRef.current;
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) currentErrors = parsed;
-      }
-    } catch (e) {}
-
-    const updated = currentErrors.map(err => err.id === editingError.id ? editingError : err);
+    const updated = errorsRef.current.map(err => err.id === editingError.id ? editingError : err);
     saveErrorsImmediately(updated);
     setEditingError(null);
     setSaveToast('Alterações salvas com sucesso no Caderno!');

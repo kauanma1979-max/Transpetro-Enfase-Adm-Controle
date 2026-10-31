@@ -11,7 +11,6 @@ export interface BackupDataPayload {
     completedDays: string[];
     completedBlocks?: string[];
     errorNotebook: any[];
-    errors?: any[];
     verticalSyllabusProgress: Record<string, any>;
     customMaterials: Record<string, any>;
     materialLinks: any[];
@@ -19,7 +18,6 @@ export interface BackupDataPayload {
     bancaNotes?: Record<string, any>;
     otherStorageKeys?: Record<string, any>;
   };
-  errors?: any[];
 }
 
 export interface BackupStats {
@@ -47,7 +45,10 @@ export const STORAGE_KEYS = {
 export const notifyDataUpdated = (sourceKey?: string) => {
   try {
     window.dispatchEvent(new CustomEvent('transpetro_storage_changed', { detail: { key: sourceKey } }));
-    window.dispatchEvent(new CustomEvent('transpetro_data_restored', { detail: { key: sourceKey } }));
+    // Apenas dispara restauração geral se não for uma chave específica (ex: importação de backup completo)
+    if (!sourceKey) {
+      window.dispatchEvent(new CustomEvent('transpetro_data_restored', { detail: { key: sourceKey } }));
+    }
   } catch (e) {
     // ignore
   }
@@ -139,15 +140,8 @@ export const generateBackupPayload = (): BackupDataPayload => {
   } catch (e) { /* ignore */ }
 
   try {
-    const rawErrors = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
-    if (rawErrors) {
-      const parsedErrors = JSON.parse(rawErrors);
-      if (Array.isArray(parsedErrors)) {
-        payload.data.errorNotebook = parsedErrors;
-        (payload.data as any).errors = parsedErrors;
-        (payload as any).errors = parsedErrors;
-      }
-    }
+    const errors = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
+    if (errors) payload.data.errorNotebook = JSON.parse(errors);
   } catch (e) { /* ignore */ }
 
   try {
@@ -234,7 +228,7 @@ export const exportFullBackup = (): void => {
   const dateSuffix = now.toISOString().slice(0, 10);
   const timeSuffix = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
   downloadLink.href = url;
-  downloadLink.setAttribute('download', `PLATAFORMA TRANSPETRO_${dateSuffix}_${timeSuffix}.json`);
+  downloadLink.setAttribute('download', `backup_pareto_transpetro_${dateSuffix}_${timeSuffix}.json`);
   document.body.appendChild(downloadLink);
   downloadLink.click();
   
@@ -256,11 +250,7 @@ export const exportErrorNotebookJson = (): void => {
       exportTimestamp: new Date().toISOString(),
       exportDateFormatted: new Date().toLocaleString('pt-BR'),
       totalErrors: errors.length,
-      errors,
-      data: {
-        errorNotebook: errors,
-        errors: errors
-      }
+      errors
     };
     const jsonStr = JSON.stringify(payload, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
@@ -268,9 +258,8 @@ export const exportErrorNotebookJson = (): void => {
     const downloadLink = document.createElement('a');
     const now = new Date();
     const dateSuffix = now.toISOString().slice(0, 10);
-    const timeSuffix = String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
     downloadLink.href = url;
-    downloadLink.setAttribute('download', `PLATAFORMA TRANSPETRO_Caderno_Erros_${dateSuffix}_${timeSuffix}.json`);
+    downloadLink.setAttribute('download', `caderno_erros_transpetro_${dateSuffix}.json`);
     document.body.appendChild(downloadLink);
     downloadLink.click();
     setTimeout(() => {
@@ -300,58 +289,8 @@ export const restoreFromRawData = (dataObj: any): { success: boolean; message: s
       localStorage.setItem(STORAGE_KEYS.COMPLETED_BLOCKS, JSON.stringify(payload.completedBlocks));
     }
 
-    // Extração flexível e segura do Caderno de Erros (suporta data.errorNotebook, errors, cadernoErros ou array direto)
-    let incomingErrors: any[] | null = null;
-    if (Array.isArray(dataObj)) {
-      incomingErrors = dataObj;
-    } else if (payload.errorNotebook && Array.isArray(payload.errorNotebook)) {
-      incomingErrors = payload.errorNotebook;
-    } else if (payload.errors && Array.isArray(payload.errors)) {
-      incomingErrors = payload.errors;
-    } else if (dataObj.errorNotebook && Array.isArray(dataObj.errorNotebook)) {
-      incomingErrors = dataObj.errorNotebook;
-    } else if (dataObj.errors && Array.isArray(dataObj.errors)) {
-      incomingErrors = dataObj.errors;
-    } else if (payload.cadernoErros && Array.isArray(payload.cadernoErros)) {
-      incomingErrors = payload.cadernoErros;
-    } else if (dataObj.cadernoErros && Array.isArray(dataObj.cadernoErros)) {
-      incomingErrors = dataObj.cadernoErros;
-    }
-
-    if (incomingErrors && Array.isArray(incomingErrors)) {
-      // Mesclagem segura: une itens do arquivo com itens já existentes no navegador para nunca perder novos registros
-      const existingRaw = localStorage.getItem(STORAGE_KEYS.ERROR_NOTEBOOK);
-      let existingErrors: any[] = [];
-      try {
-        if (existingRaw) existingErrors = JSON.parse(existingRaw);
-      } catch (e) {}
-
-      const errorMap = new Map<string, any>();
-      const getErrKey = (it: any) => {
-        if (!it) return '';
-        if (it.id) return `id_${String(it.id).trim()}`;
-        const sub = (it.subtopico || '').trim().toLowerCase();
-        const regra = (it.regraCorreta || '').trim().toLowerCase();
-        const motivo = (it.motivoErro || '').trim().toLowerCase();
-        const enunc = (it.enunciadoResumido || it.enunciado || '').trim().toLowerCase();
-        return `content_${sub}_${(regra || motivo || enunc).slice(0, 40)}`;
-      };
-
-      // 1. Adiciona os erros do arquivo recebido
-      incomingErrors.forEach(err => {
-        const key = getErrKey(err);
-        if (key) errorMap.set(key, err);
-      });
-
-      // 2. Preserva os erros locais existentes para novos itens inseridos não serem apagados
-      existingErrors.forEach(err => {
-        const key = getErrKey(err);
-        if (key) errorMap.set(key, err);
-      });
-
-      const finalErrors = Array.from(errorMap.values());
-      localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(finalErrors));
-      localStorage.setItem('transpetro_caderno_erros_customized', 'true');
+    if (payload.errorNotebook && Array.isArray(payload.errorNotebook)) {
+      localStorage.setItem(STORAGE_KEYS.ERROR_NOTEBOOK, JSON.stringify(payload.errorNotebook));
     }
 
     if (payload.verticalSyllabusProgress && typeof payload.verticalSyllabusProgress === 'object') {

@@ -12,7 +12,6 @@ import { TabMaterialEstudo } from './components/TabMaterialEstudo';
 import { FormulaCalculatorModal } from './components/FormulaCalculatorModal';
 import { BackupRestoreModal } from './components/BackupRestoreModal';
 import { NavigationTabs } from './components/NavigationTabs';
-import { ExamCountdownCard } from './components/ExamCountdownCard';
 import { 
   ScheduleDay, 
   CRONOGRAMA_15_SEMANAS, 
@@ -244,7 +243,7 @@ export default function App() {
 
     const report = `# RELATÓRIO DE ESTUDOS ESTRATÉGICO — TRANSPETRO 2026.3
 Ênfase 1: Administração e Controle (Nível Médio)
-Banca: Fundação Cesgranrio | Data da Prova: 06/12/2026 (13h00)
+Banca: Fundação Cesgranrio | Data da Prova: 29/11/2026 (13h00)
 Início do Plano: ${DATA_INICIO_ESTUDOS} | Encerramento: ${DATA_ENCERRAMENTO_ESTUDOS}
 
 ## 📊 Status do Candidato (Rotina 3h/dia · 7 dias/semana):
@@ -289,10 +288,7 @@ Gerado em: ${new Date().toLocaleString('pt-BR')}
       />
 
       {/* Main Views Container */}
-      <main className="flex-1 pb-16 px-4 max-w-7xl mx-auto w-full pt-4 sm:pt-6">
-        {/* Card de Contagem Regressiva para a Prova em 06/12/26 (Destaque no Topo em Todas as Abas) */}
-        <ExamCountdownCard onNavigateTab={handleTabChange} activeTab={activeTab} />
-
+      <main className="flex-1 pb-16 px-4 max-w-7xl mx-auto w-full pt-6">
         {/* In-body Segmented Navigation Tabs */}
         <NavigationTabs activeTab={activeTab} setActiveTab={handleTabChange} />
 

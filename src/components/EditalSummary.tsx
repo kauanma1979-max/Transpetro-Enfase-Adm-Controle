@@ -89,7 +89,7 @@ export const EditalSummary: React.FC = () => {
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Data da Prova</span>
               </div>
               <div className="text-lg sm:text-xl font-bold text-slate-900 font-mono tracking-tight">
-                06/12/2026
+                29/11/2026
               </div>
               <div className="text-[11px] text-slate-500 mt-0.5">Domingo · 4h de duração</div>
             </div>

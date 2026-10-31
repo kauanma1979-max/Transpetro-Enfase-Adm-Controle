@@ -1137,7 +1137,7 @@ export const CRONOGRAMA_15_SEMANAS: ScheduleWeek[] = [
             'Revisar fórmulas de PP, LEC, Depreciação e aditivos contratuais',
             'Revisar as regras de crase e pontuação'
           ],
-          dicaCesgranrio: 'O Caderno de Erros é seu patrimônio mais valioso de revisão até o dia 06/12/2026.'
+          dicaCesgranrio: 'O Caderno de Erros é seu patrimônio mais valioso de revisão até o dia 29/11/2026.'
         }
       }
     ]
@@ -1567,7 +1567,7 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
     blocoNome: 'BLOCO 3 — FECHAMENTO E RETA FINAL (S10 a S14 · 99h)',
     datas: '23/11 a 28/11/2026',
     titulo: 'Semana 14: Semana da Prova (23/11 a 28/11/2026) — Revisão de Véspera e Estabilização',
-    metaSemanal: 'Revisão final estratégica dos pontos de maior incidência, consulta ao Caderno de Erros e descanso cognitivo para a prova de domingo (06/12/2026 às 13h00).',
+    metaSemanal: 'Revisão final estratégica dos pontos de maior incidência, consulta ao Caderno de Erros e descanso cognitivo para a prova de domingo (29/11/2026 às 13h00).',
     horasTotais: 18, // 6 dias x 3 horas = 18 horas
     dias: [
       {
@@ -1801,10 +1801,10 @@ const gerarSemanasRestantes = (): ScheduleWeek[] => {
 // Concatena as semanas restantes gerando todas as 14 semanas até a prova
 CRONOGRAMA_15_SEMANAS.push(...gerarSemanasRestantes());
 
-// Datas do cronograma de estudos: Início em 24/08/2026 e Prova em 06/12/2026
+// Datas FIXAS do cronograma de estudos: Início em 24/08/2026 e Encerramento em 28/11/2026 (Prova: 29/11/2026)
 export const DATA_INICIO_ESTUDOS = '24/08/2026';
-export const DATA_ENCERRAMENTO_ESTUDOS = '05/12/2026';
-export const DATA_PROVA_OFICIAL = '06/12/2026';
+export const DATA_ENCERRAMENTO_ESTUDOS = '28/11/2026';
+export const DATA_PROVA_OFICIAL = '29/11/2026';
 
 export const TOTAL_SEMANAS_ESTUDO = CRONOGRAMA_15_SEMANAS.length; // 14 semanas
 export const TOTAL_DIAS_ESTUDO = CRONOGRAMA_15_SEMANAS.reduce((acc, sem) => acc + sem.dias.length, 0); // 97 dias

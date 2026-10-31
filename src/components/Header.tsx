@@ -36,8 +36,8 @@ export const Header: React.FC<HeaderProps> = ({
   }>({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
-    // Prova: 06 de Dezembro de 2026 às 13h00 (Brasília)
-    const examDate = new Date('2026-12-06T13:00:00-03:00').getTime();
+    // Prova: 29 de Novembro de 2026 às 13h00 (Brasília)
+    const examDate = new Date('2026-11-29T13:00:00-03:00').getTime();
 
     const updateTimer = () => {
       const now = new Date().getTime();
@@ -85,12 +85,12 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="flex items-center gap-1.5 font-mono text-emerald-400 font-medium bg-slate-950/70 px-2.5 py-0.5 rounded-md border border-slate-800 text-xs">
               <Clock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
               <span>
-                Prova em: <strong className="text-white font-semibold">{timeLeft.days}d</strong> {String(timeLeft.hours).padStart(2, '0')}h {String(timeLeft.minutes).padStart(2, '0')}m
+                Prova em: <strong className="text-white font-semibold">{timeLeft.days}d</strong> {String(timeLeft.hours).padStart(2, '0')}h {String(timeLeft.minutes).padStart(2, '0')}m {String(timeLeft.seconds).padStart(2, '0')}s
               </span>
             </div>
             <span className="text-slate-700 hidden md:inline">|</span>
             <span className="hidden md:inline text-amber-300/90 text-xs font-medium">
-              Cesgranrio (06/12/2026)
+              Cesgranrio (29/11/2026)
             </span>
           </div>
         </div>
